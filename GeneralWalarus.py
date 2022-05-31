@@ -1,6 +1,6 @@
-from unicodedata import category
 import discord
 from discord.ext import commands
+import config as cfg
 
 client = commands.Bot(command_prefix="$")
 
@@ -17,4 +17,4 @@ async def biweekly_general(ctx, general_cat_name=None, archive_cat_name="Archive
     await old_general_chat.move(beginning=True, category=archive_category, sync_permissions=True)
     await guild.create_text_channel("general", category=general_category)
 
-client.run("OTgxMjAzNDY0Nzg2OTM1ODMw.GjQ8il.DI0OXg0JdzB7tG14swX_3ftNaszHJ0k6CADBVM")
+client.run(cfg.BOT_TOKEN)
