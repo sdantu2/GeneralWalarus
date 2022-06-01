@@ -29,7 +29,7 @@ async def time(ctx):
 # Command to manually run archive function for testing purposes
 @client.command(name="archivegeneral")
 async def test_archive_general(ctx, general_cat_name=None, archive_cat_name="Archive", freq=2):
-    if ctx.author == ctx.guild.owner:
+    if ctx.author.id == ctx.guild.owner_id:
         await archive_general(ctx.guild, general_cat_name=general_cat_name, archive_cat_name=archive_cat_name, freq=freq)
     else:
         await ctx.channel.send("You don't have access to that command")
