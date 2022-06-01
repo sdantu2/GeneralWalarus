@@ -13,7 +13,7 @@ async def on_ready():
 
 @client.event
 async def on_guild_join(guild):
-    print("General Walarus joined guild {} ({})".format(guild.name, guild.id))
+    print('General Walarus joined guild "{}" (id: {})'.format(guild.name, guild.id))
     await repeat_archive(guild)
 
 # Dummy command
