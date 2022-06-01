@@ -32,7 +32,7 @@ async def test_archive_general(ctx, general_cat_name=None, archive_cat_name="Arc
     if ctx.author == ctx.guild.owner:
         await archive_general(ctx.guild, general_cat_name=general_cat_name, archive_cat_name=archive_cat_name, freq=freq)
     else:
-        ctx.channel.send("You don't have access to that command")
+        await ctx.channel.send("You don't have access to that command")
 
 # Handles the actual archiving of general chat
 async def archive_general(guild, general_cat_name=None, archive_cat_name="Archive", freq=2):
