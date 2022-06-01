@@ -29,7 +29,10 @@ async def time(ctx):
 # Command to manually run archive function for testing purposes
 @client.command(name="archivegeneral")
 async def test_archive_general(ctx, general_cat_name=None, archive_cat_name="Archive", freq=2):
-    await archive_general(ctx.guild, general_cat_name=general_cat_name, archive_cat_name=archive_cat_name, freq=freq)
+    if ctx.author == ctx.guild.owner:
+        await archive_general(ctx.guild, general_cat_name=general_cat_name, archive_cat_name=archive_cat_name, freq=freq)
+    else:
+        ctx.channel.send("You don't have access to that command")
 
 # Handles the actual archiving of general chat
 async def archive_general(guild, general_cat_name=None, archive_cat_name="Archive", freq=2):
@@ -38,7 +41,8 @@ async def archive_general(guild, general_cat_name=None, archive_cat_name="Archiv
     old_general_chat = discord.utils.get(guild.channels, name="general")
     await old_general_chat.move(beginning=True, category=archive_category, sync_permissions=True)
     await old_general_chat.edit(name=get_archived_name())
-    await guild.create_text_channel("general", category=general_category)
+    new_channel = await guild.create_text_channel("general", category=general_category)
+    await new_channel.send("good morning @everyone")
 
 # Returns the archived name of the archived general chat
 def get_archived_name() -> str:
