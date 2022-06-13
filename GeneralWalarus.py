@@ -43,7 +43,10 @@ async def archive_general(guild, general_cat_name=None, archive_cat_name="Archiv
     general_category = discord.utils.get(guild.categories, name=general_cat_name)
     archive_category = discord.utils.get(guild.categories, name="Archive")
     old_general_chat = discord.utils.get(guild.channels, name="general")
-    await old_general_chat.move(beginning=True, category=archive_category, sync_permissions=True)
+    try:
+        await old_general_chat.move(beginning=True, category=archive_category, sync_permissions=True)   
+    except:
+        print('Error moving general chat in {} (id: {})'.format(guild.name, guild.id))
     await old_general_chat.edit(name=get_archived_name())
     new_channel = await guild.create_text_channel("general", category=general_category)
     await new_channel.send("good morning @everyone")
@@ -71,7 +74,7 @@ async def repeat_archive(guild):
             print(str(now) + ": general archived")
         else:
             print(str(now) + ": there was an error archiving general")
-        update_next_archive_date(NEXT_DATE_FILENAME, now, weeks=2)
+        update_next_archive_date(cfg.NEXT_ARCHIVE_DATE_FILE, now, weeks=2)
         await asyncio.sleep(wait_time)
 
 # Returns the next archive datetime from a file
