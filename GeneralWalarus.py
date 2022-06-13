@@ -77,7 +77,7 @@ async def repeat_archive(guild):
         then = now + timedelta(weeks=2)
         wait_time = (then - now).total_seconds()
         if discord.utils.get(guild.channels, name=get_archived_name()):
-            print(str(now) + ": general archived")
+            print(str(now) + ': general archived in "{}" (id: {})'.format(guild.name, guild.id))
         else:
             print(str(now) + ": there was an error archiving general")
         update_next_archive_date(cfg.NEXT_ARCHIVE_DATE_FILE, now, weeks=2)
