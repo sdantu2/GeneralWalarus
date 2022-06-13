@@ -36,7 +36,7 @@ async def test_archive_general(ctx, general_cat_name=None, archive_cat_name="Arc
         
 @client.command(name="nextarchivedate")
 async def next_archive_date_command(ctx):
-    await ctx.channelsend("Next archive date: " + str(get_next_archive_date(cfg.NEXT_ARCHIVE_DATE_FILE)))
+    await ctx.channel.send("Next archive date: " + str(get_next_archive_date(cfg.NEXT_ARCHIVE_DATE_FILE)))
 
 # Handles the actual archiving of general chat
 async def archive_general(guild, general_cat_name=None, archive_cat_name="Archive", freq=2):
