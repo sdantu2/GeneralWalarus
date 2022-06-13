@@ -33,6 +33,10 @@ async def test_archive_general(ctx, general_cat_name=None, archive_cat_name="Arc
         await archive_general(ctx.guild, general_cat_name=general_cat_name, archive_cat_name=archive_cat_name, freq=freq)
     else:
         await ctx.channel.send("You don't have access to that command")
+        
+@client.command(name="nextarchivedate")
+async def next_archive_date_command(ctx):
+    await ctx.channelsend("Next archive date: " + str(get_next_archive_date(cfg.NEXT_ARCHIVE_DATE_FILE)))
 
 # Handles the actual archiving of general chat
 async def archive_general(guild, general_cat_name=None, archive_cat_name="Archive", freq=2):
@@ -54,9 +58,8 @@ def get_archived_name() -> str:
 
 # Handles repeatedly archiving general chat
 async def repeat_archive(guild):
-    NEXT_DATE_FILENAME = "next_archive_date.txt"
     now = datetime.now()
-    then = get_next_archive_date(NEXT_DATE_FILENAME)
+    then = get_next_archive_date(cfg.NEXT_ARCHIVE_DATE_FILE)
     wait_time = (then - now).total_seconds()
     await asyncio.sleep(wait_time)
     while True:
