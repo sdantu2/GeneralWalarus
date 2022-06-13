@@ -24,7 +24,10 @@ async def bruh(ctx):
 # Get the current time that is being read
 @client.command(name="time")
 async def time(ctx):
-    await ctx.send("Current date/time: " + str(datetime.now()))
+    if ctx.author.id == ctx.guild.owner_id:
+        await ctx.send("Current date/time: " + str(datetime.now()))
+    else:
+        await ctx.send("Only the owner can use this command")
 
 # Command to manually run archive function for testing purposes
 @client.command(name="archivegeneral")
@@ -32,11 +35,14 @@ async def test_archive_general(ctx, general_cat_name=None, archive_cat_name="Arc
     if ctx.author.id == ctx.guild.owner_id:
         await archive_general(ctx.guild, general_cat_name=general_cat_name, archive_cat_name=archive_cat_name, freq=freq)
     else:
-        await ctx.channel.send("You don't have access to that command")
+        await ctx.send("Only the owner can use this command")
         
 @client.command(name="nextarchivedate")
 async def next_archive_date_command(ctx):
-    await ctx.channel.send("Next archive date: " + str(get_next_archive_date(cfg.NEXT_ARCHIVE_DATE_FILE)))
+    if ctx.author.id == ctx.guild.owner_id:
+        await ctx.send("Next archive date: " + str(get_next_archive_date(cfg.NEXT_ARCHIVE_DATE_FILE)))
+    else:
+        await ctx.send("Only the owner can use this command")
 
 # Handles the actual archiving of general chat
 async def archive_general(guild, general_cat_name=None, archive_cat_name="Archive", freq=2):
