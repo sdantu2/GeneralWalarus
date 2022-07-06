@@ -1,10 +1,12 @@
 import asyncio
-import config as cfg
 from datetime import datetime, date, timedelta
 import discord
-import json
 from discord.ext import commands
+from dotenv import load_dotenv
+import json
+import os
 
+load_dotenv()
 client = commands.Bot(command_prefix="$")
 
 # Prints in console when bot is ready to be used
@@ -44,7 +46,7 @@ async def test_archive_general(ctx: commands.Context, general_cat_name=None,
 async def next_archive_date_command(ctx: commands.Context) -> None:
     if ctx.author.id == ctx.guild.owner_id:
         await ctx.send("Next archive date: " + 
-                       str(get_next_archive_date(cfg.NEXT_ARCHIVE_DATE_FILE)))
+                       str(get_next_archive_date(os.getenv("NEXT_ARCHIVE_DATE_FILE"))))
     else:
         await ctx.send("Only the owner can use this command")
 
@@ -76,7 +78,7 @@ def get_archived_name() -> str:
 # Handles repeatedly archiving general chat
 async def repeat_archive(guild: discord.Guild) -> None:
     now = datetime.now()
-    then = get_next_archive_date(cfg.NEXT_ARCHIVE_DATE_FILE)
+    then = get_next_archive_date(os.getenv("NEXT_ARCHIVE_DATE_FILE"))
     wait_time = (then - now).total_seconds()
     await asyncio.sleep(wait_time)
     while True:
@@ -88,7 +90,7 @@ async def repeat_archive(guild: discord.Guild) -> None:
             print(str(now) + ': general archived in "{}" (id: {})'.format(guild.name, guild.id))
         else:
             print(str(now) + ": there was an error archiving general")
-        update_next_archive_date(cfg.NEXT_ARCHIVE_DATE_FILE, now, weeks=2)
+        update_next_archive_date(os.getenv("NEXT_ARCHIVE_DATE_FILE"), now, weeks=2)
         await asyncio.sleep(wait_time)
 
 # Returns the next archive datetime from a file
@@ -114,5 +116,4 @@ def update_next_archive_date(filename, old_date, seconds=0, minutes=0, hours=0,
     with open(filename, "w") as f:
         json.dump(date_json, f)
         
-client.run(cfg.BOT_TOKEN)
-
+client.run(os.getenv("BOT_TOKEN"))
