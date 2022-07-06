@@ -1,1 +1,1 @@
-worker: python GeneralWalarus.py
+worker: python general_walarus.py

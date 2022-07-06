@@ -1,2 +1,2 @@
 BOT_TOKEN = "OTgxMjAzNDY0Nzg2OTM1ODMw.GjQ8il.DI0OXg0JdzB7tG14swX_3ftNaszHJ0k6CADBVM"
-NEXT_ARCHIVE_DATE_FILE = "next_archive_date.txt"
+NEXT_ARCHIVE_DATE_FILE = "next_archive_date.json"
