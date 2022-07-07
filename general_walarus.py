@@ -19,9 +19,16 @@ async def on_ready() -> None:
     print("General Walarus is up and ready in {} server(s)".format(len(bot.guilds)))
 
 @bot.event
+async def on_message(message: discord.Message) -> None:
+    db.log_user_stat(message.guild, message.author, "sent_messages")
+    for user in message.mentions:
+        db.log_user_stat(message.guild, user, "mentioned")
+    await bot.process_commands(message)
+
+@bot.event
 async def on_guild_join(guild: discord.Guild) -> None:
     print('General Walarus joined guild "{}" (id: {})'.format(guild.name, guild.id))
-    db.log(guild)
+    db.log_server(guild)
     await repeat_archive(guild)
 
 # Command to manually run archive function for testing purposes
@@ -39,10 +46,17 @@ async def test_archive_general(ctx: commands.Context, general_cat_name=None,
 async def bruh(ctx: commands.Context) -> None:
     await ctx.send("bruh")
     
+@bot.command(name="echo")
+async def echo(ctx: commands.Context, *words) -> None:
+    message = ""
+    for word in words:
+        message += word + " "
+    await ctx.send(message)
+    
 @bot.command(name="intodatabase", aliases=["intodb"])
 async def log_server_into_database(ctx: commands.Context):
     if ctx.author.id == ctx.guild.owner_id:
-        created_new = db.log(ctx.guild)
+        created_new = db.log_server(ctx.guild)
         if created_new:
             await ctx.send("Logged this server into the database") 
         else: 
