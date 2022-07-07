@@ -17,6 +17,11 @@ DATE_FILE = os.getenv("NEXT_ARCHIVE_DATE_FILE")
 @bot.event
 async def on_ready() -> None:
     print("General Walarus is up and ready in {} server(s)".format(len(bot.guilds)))
+    if os.getenv("ENV_NAME") == "production":
+        for server in bot.guilds:
+            announce_chat: discord.TextChannel = discord.utils.get(server.text_channels, name="general")
+            announce_chat = server.channels.pop(0) if announce_chat == None else announce_chat
+            await announce_chat.send("A new version of me just rolled out @everyone")
 
 @bot.event
 async def on_message(message: discord.Message) -> None:
@@ -85,7 +90,7 @@ async def archive_general(guild: discord.Guild, general_cat_name=None,
                           archive_cat_name="Archive", freq=2) -> None:
     general_category = discord.utils.get(guild.categories, name=general_cat_name)
     archive_category = discord.utils.get(guild.categories, name="Archive")
-    old_general_chat = discord.utils.get(guild.channels, name="general")
+    old_general_chat = discord.utils.get(guild.text_channels, name="general")
     try:
         await old_general_chat.move(beginning=True, category=archive_category, 
                                     sync_permissions=True)   
