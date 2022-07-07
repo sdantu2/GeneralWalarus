@@ -68,6 +68,28 @@ async def log_server_into_database(ctx: commands.Context):
             await ctx.send("Updated this server in database")
     else:
         await ctx.send("Only the owner can use this command")
+
+@bot.command(name="join", aliases=["capture", "connect"])
+async def join_vc(ctx: commands.Context):         
+    voice_state: discord.VoiceState = ctx.author.voice
+    voice_client: discord.VoiceClient
+    if voice_state != None:
+        voice_channel: discord.VoiceChannel = voice_state.channel
+        try:
+            voice_client = await voice_channel.connect()
+        except:
+            curr_voice_client: discord.VoiceClient = discord.utils.get(ctx.bot.voice_clients, guild=ctx.guild)
+            voice_client = await curr_voice_client.move_to(voice_channel)
+    else:
+        await ctx.send("You're not connected to a voice channel")
+    
+@bot.command(name="leave", aliases=["stopstalking"])
+async def leave_vc(ctx: commands.Context):
+    voice_client: discord.VoiceClient = discord.utils.get(ctx.bot.voice_clients, guild=ctx.guild)
+    if voice_client != None:
+        await voice_client.disconnect()
+    else:
+        await ctx.send("I'm not in a voice channel")
         
 @bot.command(name="nextarchivedate", aliases=["archivedate"])
 async def next_archive_date_command(ctx: commands.Context) -> None:
