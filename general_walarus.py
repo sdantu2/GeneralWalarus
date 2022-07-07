@@ -1,39 +1,38 @@
 import asyncio
 from datetime import datetime, date, timedelta
+from db_handler import DbHandler
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 import json
 import os
 
+# Setup
 load_dotenv()
-client = commands.Bot(command_prefix="$")
+bot = commands.Bot(command_prefix="$")
+db = DbHandler(os.getenv("DB_CONN_STRING"))
+DATE_FILE = os.getenv("NEXT_ARCHIVE_DATE_FILE")
 
 # Prints in console when bot is ready to be used
-@client.event
+@bot.event
 async def on_ready() -> None:
-    print("General Walarus is up and ready")
+    print("General Walarus is up and ready in {} server(s)".format(len(bot.guilds)))
 
-@client.event
+@bot.event
+async def on_message(message: discord.Message) -> None:
+    db.log_user_stat(message.guild, message.author, "sent_messages")
+    for user in message.mentions:
+        db.log_user_stat(message.guild, user, "mentioned")
+    await bot.process_commands(message)
+
+@bot.event
 async def on_guild_join(guild: discord.Guild) -> None:
     print('General Walarus joined guild "{}" (id: {})'.format(guild.name, guild.id))
+    db.log_server(guild)
     await repeat_archive(guild)
 
-# Dummy command
-@client.command(name="bruh")
-async def bruh(ctx: commands.Context) -> None:
-    await ctx.send("bruh")
-    
-# Get the current time that is being read
-@client.command(name="time")
-async def time(ctx: commands.Context) -> None:
-    if ctx.author.id == ctx.guild.owner_id:
-        await ctx.send("Current date/time: " + str(datetime.now()))
-    else:
-        await ctx.send("Only the owner can use this command")
-
 # Command to manually run archive function for testing purposes
-@client.command(name="archivegeneral")
+@bot.command(name="archivegeneral")
 async def test_archive_general(ctx: commands.Context, general_cat_name=None, 
                                archive_cat_name="Archive", freq=2) -> None:
     if ctx.author.id == ctx.guild.owner_id:
@@ -42,11 +41,42 @@ async def test_archive_general(ctx: commands.Context, general_cat_name=None,
     else:
         await ctx.send("Only the owner can use this command")
         
-@client.command(name="nextarchivedate", aliases=["archivedate"])
+# Dummy command
+@bot.command(name="bruh")
+async def bruh(ctx: commands.Context) -> None:
+    await ctx.send("bruh")
+    
+@bot.command(name="echo")
+async def echo(ctx: commands.Context, *words) -> None:
+    message = ""
+    for word in words:
+        message += word + " "
+    await ctx.send(message)
+    
+@bot.command(name="intodatabase", aliases=["intodb"])
+async def log_server_into_database(ctx: commands.Context):
+    if ctx.author.id == ctx.guild.owner_id:
+        created_new = db.log_server(ctx.guild)
+        if created_new:
+            await ctx.send("Logged this server into the database") 
+        else: 
+            await ctx.send("Updated this server in database")
+    else:
+        await ctx.send("Only the owner can use this command")
+        
+@bot.command(name="nextarchivedate", aliases=["archivedate"])
 async def next_archive_date_command(ctx: commands.Context) -> None:
     if ctx.author.id == ctx.guild.owner_id:
         await ctx.send("Next archive date: " + 
-                       str(get_next_archive_date(os.getenv("NEXT_ARCHIVE_DATE_FILE"))))
+                       str(get_next_archive_date(DATE_FILE)))
+    else:
+        await ctx.send("Only the owner can use this command")
+
+# Get the current time that is being read
+@bot.command(name="time")
+async def time(ctx: commands.Context) -> None:
+    if ctx.author.id == ctx.guild.owner_id:
+        await ctx.send("Current date/time on the server: " + str(datetime.now()))
     else:
         await ctx.send("Only the owner can use this command")
 
@@ -78,7 +108,7 @@ def get_archived_name() -> str:
 # Handles repeatedly archiving general chat
 async def repeat_archive(guild: discord.Guild) -> None:
     now = datetime.now()
-    then = get_next_archive_date(os.getenv("NEXT_ARCHIVE_DATE_FILE"))
+    then = get_next_archive_date(DATE_FILE)
     wait_time = (then - now).total_seconds()
     await asyncio.sleep(wait_time)
     while True:
@@ -90,7 +120,7 @@ async def repeat_archive(guild: discord.Guild) -> None:
             print(str(now) + ': general archived in "{}" (id: {})'.format(guild.name, guild.id))
         else:
             print(str(now) + ": there was an error archiving general")
-        update_next_archive_date(os.getenv("NEXT_ARCHIVE_DATE_FILE"), now, weeks=2)
+        update_next_archive_date(DATE_FILE, now, weeks=2)
         await asyncio.sleep(wait_time)
 
 # Returns the next archive datetime from a file
@@ -116,4 +146,4 @@ def update_next_archive_date(filename, old_date, seconds=0, minutes=0, hours=0,
     with open(filename, "w") as f:
         json.dump(date_json, f)
         
-client.run(os.getenv("BOT_TOKEN"))
+bot.run(os.getenv("BOT_TOKEN"))
