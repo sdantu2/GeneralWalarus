@@ -9,9 +9,9 @@ class DbHandler:
     def log_user_stat(self, discord_server: discord.Guild, user: discord.User, target_stat: str,
                       inc = 1) -> bool:
         user_stats = self.__db.user_stats
-        stat_names = ["mentioned", "sent_messages", "vc_time"]
+        stats = ["mentioned", "sent_messages", "vc_time"]
         stats_data = {}
-        for stat in stat_names:
+        for stat in stats:
             if stat == target_stat:
                 stats_data[stat] = inc
             else:
@@ -19,12 +19,14 @@ class DbHandler:
         return user_stats.update_one({
                                         "_id": {
                                             "server_id": discord_server.id, 
-                                            "user_id": user.id, 
-                                            "server_name": discord_server.name, 
-                                            "user_name": user.name
+                                            "user_id": user.id
                                         }
                                     }, 
                                     {
+                                        "$set": {
+                                            "server_name": discord_server.name, 
+                                            "user_name": user.name
+                                        },
                                         "$inc": stats_data
                                     }, 
                                     upsert = True).upserted_id != None
