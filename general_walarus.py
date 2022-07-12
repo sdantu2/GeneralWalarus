@@ -3,15 +3,19 @@ from datetime import datetime, date, timedelta
 from db_handler import DbHandler
 import discord
 from discord.ext import commands
+from discord.sinks import WaveSink
 from dotenv import load_dotenv
 import json
 import os
 
 # Setup
+intents = discord.Intents.default()
+intents.message_content = True
 load_dotenv()
-bot = commands.Bot(command_prefix="$")
+bot = commands.Bot(command_prefix="$", intents=intents)
 db = DbHandler(os.getenv("DB_CONN_STRING"))
 DATE_FILE = os.getenv("NEXT_ARCHIVE_DATE_FILE")
+vc_connections = {}
 
 # Prints in console when bot is ready to be used
 @bot.event
@@ -22,7 +26,8 @@ async def on_ready() -> None:
             announce_chat: discord.TextChannel = discord.utils.get(server.text_channels, name="general")
             announce_chat = server.channels.pop(0) if announce_chat == None else announce_chat
             await announce_chat.send("A new version of me just rolled out @everyone")
-
+    await repeat_archive()
+    
 @bot.event
 async def on_message(message: discord.Message) -> None:
     db.log_user_stat(message.guild, message.author, "sent_messages")
@@ -34,7 +39,16 @@ async def on_message(message: discord.Message) -> None:
 async def on_guild_join(guild: discord.Guild) -> None:
     print('General Walarus joined guild "{}" (id: {})'.format(guild.name, guild.id))
     db.log_server(guild)
-    await repeat_archive(guild)
+
+@bot.event
+async def on_guild_remove(guild: discord.Guild) -> None:
+    print('General Walarus has been removed from guild "{}" (id: {})'.format(guild.name, guild.id))
+    print(f"{db.remove_discord_server(guild)} documents removed from database")
+
+@bot.event
+async def on_guild_update(before: discord.Guild, after: discord.Guild):
+    db.log_server(after)
+    print('Server {} was updated'.format(before.id))
 
 # Command to manually run archive function for testing purposes
 @bot.command(name="archivegeneral")
@@ -69,33 +83,43 @@ async def log_server_into_database(ctx: commands.Context):
     else:
         await ctx.send("Only the owner can use this command")
 
-@bot.command(name="join", aliases=["capture", "connect"])
-async def join_vc(ctx: commands.Context):         
-    voice_state: discord.VoiceState = ctx.author.voice
-    voice_client: discord.VoiceClient
-    if voice_state != None:
-        voice_channel: discord.VoiceChannel = voice_state.channel
-        try:
-            voice_client = await voice_channel.connect()
-        except:
-            curr_voice_client: discord.VoiceClient = discord.utils.get(ctx.bot.voice_clients, guild=ctx.guild)
-            voice_client = await curr_voice_client.move_to(voice_channel)
-    else:
-        await ctx.send("You're not connected to a voice channel")
-    
-@bot.command(name="leave", aliases=["stopstalking"])
-async def leave_vc(ctx: commands.Context):
-    voice_client: discord.VoiceClient = discord.utils.get(ctx.bot.voice_clients, guild=ctx.guild)
-    if voice_client != None:
-        await voice_client.disconnect()
-    else:
-        await ctx.send("I'm not in a voice channel")
+# @bot.command(name="join", aliases=["connect"])
+# async def join_vc(ctx: commands.Context):         
+#     voice_state: discord.VoiceState = ctx.author.voice
+#     voice_client: discord.VoiceClient
+#     if voice_state != None:
+#         voice_channel: discord.VoiceChannel = voice_state.channel
+#         try:
+#             voice_client = await voice_channel.connect()
+#         except:
+#             curr_voice_client: discord.VoiceClient = discord.utils.get(ctx.bot.voice_clients, guild=ctx.guild)
+#             voice_client = await curr_voice_client.move_to(voice_channel)
+#         start_recording(voice_client, ctx.guild, ctx.channel)
+#     else:
+#         await ctx.send("You're not connected to a voice channel")
+
+# @bot.command(name="clip", aliases=["capture, clipthatshit"])
+# async def clip_vc(ctx: commands.Context, *args):
+#     voice_client: discord.VoiceClient = vc_connections[ctx.guild.id]
+#     if voice_client != None:
+#         stop_recording(voice_client, ctx.guild)
+#         start_recording(voice_client, ctx.guild, ctx.channel)
+#     else:
+#         await ctx.send(f"I need to be in a voice channel {ctx.author}")
+
+# @bot.command(name="leave", aliases=["stopstalking"])
+# async def leave_vc(ctx: commands.Context):
+#     voice_client: discord.VoiceClient = vc_connections[ctx.guild.id]
+#     if voice_client != None:
+#         await voice_client.disconnect()
+#         del vc_connections[ctx.guild.id]
+#     else:
+#         await ctx.send("I'm not in a voice channel")
         
 @bot.command(name="nextarchivedate", aliases=["archivedate"])
 async def next_archive_date_command(ctx: commands.Context) -> None:
     if ctx.author.id == ctx.guild.owner_id:
-        await ctx.send("Next archive date: " + 
-                       str(get_next_archive_date(DATE_FILE)))
+        await ctx.send("Next archive date: " + str(get_next_archive_date(DATE_FILE)))
     else:
         await ctx.send("Only the owner can use this command")
 
@@ -107,22 +131,25 @@ async def time(ctx: commands.Context) -> None:
     else:
         await ctx.send("Only the owner can use this command")
 
+# Command reserved for testing purposes
+@bot.command(name="test")
+async def test(ctx: commands.Context) -> None:
+    pass
+
 # Handles the actual archiving of general chat
-async def archive_general(guild: discord.Guild, general_cat_name=None, 
-                          archive_cat_name="Archive", freq=2) -> None:
-    general_category = discord.utils.get(guild.categories, name=general_cat_name)
-    archive_category = discord.utils.get(guild.categories, name="Archive")
-    old_general_chat = discord.utils.get(guild.text_channels, name="general")
+async def archive_general(guild: discord.Guild, general_cat_name=None, archive_cat_name="Archive", freq=2) -> None:
     try:
-        await old_general_chat.move(beginning=True, category=archive_category, 
-                                    sync_permissions=True)   
-    except:
-        print('Error moving general chat in {} (id: {})'.format(guild.name, 
-                                                                guild.id))
-    await old_general_chat.edit(name=get_archived_name())
-    new_channel = await guild.create_text_channel("general", 
-                                                  category=general_category)
-    await new_channel.send("good morning @everyone")
+        general_category = discord.utils.get(guild.categories, name=general_cat_name)
+        archive_category = discord.utils.get(guild.categories, name="Archive")
+        chat_to_archive = discord.utils.get(guild.text_channels, name="general")
+        await chat_to_archive.move(beginning=True, category=archive_category, 
+                                    sync_permissions=True)
+        await chat_to_archive.edit(name=get_archived_name())
+        new_channel = await guild.create_text_channel("general", 
+                                                    category=general_category)
+        await new_channel.send("good morning @everyone")   
+    except Exception as ex:
+        raise Exception(str(ex))
 
 # Returns the archived name of the archived general chat
 def get_archived_name() -> str:
@@ -133,35 +160,38 @@ def get_archived_name() -> str:
     return "general-" + month + "-" + day + "-" + year[len(year) - 2:]
 
 # Handles repeatedly archiving general chat
-async def repeat_archive(guild: discord.Guild) -> None:
+async def repeat_archive() -> None:
+    ARCHIVE_FREQ_WEEKS = timedelta(weeks=2)
+    await sleep_until_archive()
+    while True:
+        update_next_archive_date(DATE_FILE, ARCHIVE_FREQ_WEEKS)
+        for guild in bot.guilds:
+            try:
+                await archive_general(guild=guild)
+                now = datetime.now()
+                discord.utils.get(guild.channels, name=get_archived_name())
+                print(str(now) + ': general archived in "{}" (id: {})'.format(guild.name, guild.id))
+            except Exception as ex:
+                print(str(now) + ': there was an error archiving general in "{}" (id: {}): {}'.format(guild.name, guild.id, str(ex)))
+        await sleep_until_archive()
+
+# Handles waiting for the next archive date
+async def sleep_until_archive() -> None:
     now = datetime.now()
     then = get_next_archive_date(DATE_FILE)
     wait_time = (then - now).total_seconds()
     await asyncio.sleep(wait_time)
-    while True:
-        await archive_general(guild=guild)
-        now = datetime.now()
-        then = now + timedelta(weeks=2)
-        wait_time = (then - now).total_seconds()
-        if discord.utils.get(guild.channels, name=get_archived_name()):
-            print(str(now) + ': general archived in "{}" (id: {})'.format(guild.name, guild.id))
-        else:
-            print(str(now) + ": there was an error archiving general")
-        update_next_archive_date(DATE_FILE, now, weeks=2)
-        await asyncio.sleep(wait_time)
 
 # Returns the next archive datetime from a file
 def get_next_archive_date(filename: str) -> datetime:
     with open(filename, "r") as f:
         data = json.load(f)
-        return datetime(data["year"], data["month"], data["day"], data["hour"], 
-                        data["minute"], data["second"])
+        return datetime(data["year"], data["month"], data["day"], data["hour"], data["minute"], data["second"])
 
 # Updates the file with the next archive date
-def update_next_archive_date(filename, old_date, seconds=0, minutes=0, hours=0, 
-                             days=0, weeks=0) -> None:
-    new_date: datetime = old_date + timedelta(seconds=seconds, minutes=minutes, 
-                                             hours=hours, days=days, weeks=weeks)
+def update_next_archive_date(filename: str, archive_freq: timedelta) -> None:
+    old_date = get_next_archive_date(DATE_FILE)
+    new_date: datetime = old_date + archive_freq
     date_json = {
         "year": new_date.year,
         "month": new_date.month,
@@ -171,6 +201,24 @@ def update_next_archive_date(filename, old_date, seconds=0, minutes=0, hours=0,
         "second": new_date.second
     }
     with open(filename, "w") as f:
-        json.dump(date_json, f)
-        
+        json.dump(date_json, f, indent=4)
+
+def start_recording(voice_client: discord.VoiceClient, guild: discord.Guild, channel: discord.TextChannel) -> None:
+    vc_connections.update({guild.id: voice_client})
+    voice_channel = voice_client.channel
+    voice_client.start_recording(WaveSink(), get_audio_files, voice_channel, channel)
+
+def stop_recording(voice_client: discord.VoiceClient, guild: discord.Guild, send: bool=True) -> None:
+    voice_client.stop_recording()
+
+async def get_audio_files(sink: WaveSink, vc: discord.VoiceChannel, channel: discord.TextChannel) -> None:
+    recorded_users = [
+        f"<@{user_id}>"
+        for user_id, audio in sink.audio_data.items()
+    ]
+    now = datetime.now()
+    timestamp = f"{str(now.date())}_{now.hour}-{now.minute}-{now.second}"
+    files = [discord.File(audio.file, f"vcclip_{timestamp}.{sink.encoding}") for user_id, audio in sink.audio_data.items()]  # List down the files.
+    await channel.send(f"Clipped all audio from the \"{vc.name}\" voice chat:", files=files) 
+
 bot.run(os.getenv("BOT_TOKEN"))
