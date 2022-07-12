@@ -3,7 +3,7 @@ from datetime import datetime, date, timedelta
 from db_handler import DbHandler
 import discord
 from discord.ext import commands
-# from discord.sinks import WaveSink
+from discord.sinks import WaveSink
 from dotenv import load_dotenv
 import json
 import os
