@@ -1,8 +1,5 @@
 from datetime import datetime
-from bson import Int64
-import bson
 import discord
-from gridfs import Collection
 from pymongo import MongoClient
 
 class DbHandler:
@@ -36,7 +33,7 @@ class DbHandler:
 
     def log_server(self, discord_server: discord.Guild) -> bool:
         connected_servers = self.__db.connected_servers
-        server_exists = bool(connected_servers.find_one({"_id": Int64(discord_server.id)}))
+        server_exists = bool(connected_servers.find_one({"_id": discord_server.id}))
         icon_exists = bool(discord_server.icon)
         description_exists = bool(discord_server.description)
         server_data = {
