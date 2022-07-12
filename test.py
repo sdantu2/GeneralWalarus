@@ -1,8 +1,9 @@
+from datetime import datetime
 import discord
 from discord.ext import commands
 import os
 from dotenv import load_dotenv
-from discord.sinks import WaveSink, Sink
+from discord.sinks import WaveSink, Sink, MP3Sink
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -40,7 +41,9 @@ async def once_done(sink: Sink, channel: discord.TextChannel, *args):  # Our voi
         f"<@{user_id}>"
         for user_id, audio in sink.audio_data.items()
     ]
-    files = [discord.File(audio.file, f"{user_id}.{sink.encoding}") for user_id, audio in sink.audio_data.items()]  # List down the files.
+    now = datetime.now()
+    timestamp = f"{str(now.date())}_{now.hour}-{now.minute}-{now.second}"
+    files = [discord.File(audio.file, f"vcclip_{timestamp}.{sink.encoding}") for user_id, audio in sink.audio_data.items()]  # List down the files.
     await channel.send(f"finished recording audio for: {', '.join(recorded_users)}.", files=files)  # Send a message with the accumulated files.
 
 @bot.command(name="stop")

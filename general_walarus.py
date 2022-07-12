@@ -1,10 +1,9 @@
 import asyncio
 from datetime import datetime, date, timedelta
-from multiprocessing.connection import wait
 from db_handler import DbHandler
 import discord
 from discord.ext import commands
-from discord.sinks import MP3Sink
+from discord.sinks import WaveSink
 from dotenv import load_dotenv
 import json
 import os
@@ -13,9 +12,10 @@ import os
 intents = discord.Intents.default()
 intents.message_content = True
 load_dotenv()
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = commands.Bot(command_prefix="$", intents=intents)
 db = DbHandler(os.getenv("DB_CONN_STRING"))
 DATE_FILE = os.getenv("NEXT_ARCHIVE_DATE_FILE")
+vc_connections = {}
 
 # Prints in console when bot is ready to be used
 @bot.event
@@ -43,7 +43,7 @@ async def on_guild_join(guild: discord.Guild) -> None:
 @bot.event
 async def on_guild_remove(guild: discord.Guild) -> None:
     print('General Walarus has been removed from guild "{}" (id: {})'.format(guild.name, guild.id))
-    db.remove_discord_server(guild)
+    print(f"{db.remove_discord_server(guild)} documents removed from database")
 
 @bot.event
 async def on_guild_update(before: discord.Guild, after: discord.Guild):
@@ -83,36 +83,43 @@ async def log_server_into_database(ctx: commands.Context):
     else:
         await ctx.send("Only the owner can use this command")
 
-@bot.command(name="join", aliases=["capture", "connect"])
-async def join_vc(ctx: commands.Context):         
-    voice_state: discord.VoiceState = ctx.author.voice
-    voice_client: discord.VoiceClient
-    if voice_state != None:
-        voice_channel: discord.VoiceChannel = voice_state.channel
-        try:
-            voice_client = await voice_channel.connect()
-        except:
-            curr_voice_client: discord.VoiceClient = discord.utils.get(ctx.bot.voice_clients, guild=ctx.guild)
-            voice_client = await curr_voice_client.move_to(voice_channel)
-        sink = MP3Sink()
-        voice_client.start_recording(sink, finished_callback, ctx.channel)
-    else:
-        await ctx.send("You're not connected to a voice channel")
-    
-@bot.command(name="leave", aliases=["stopstalking"])
-async def leave_vc(ctx: commands.Context):
-    voice_client: discord.VoiceClient = discord.utils.get(ctx.bot.voice_clients, guild=ctx.guild)
-    if voice_client != None:
-        voice_client.stop_recording()
-        await voice_client.disconnect()
-    else:
-        await ctx.send("I'm not in a voice channel")
+# @bot.command(name="join", aliases=["connect"])
+# async def join_vc(ctx: commands.Context):         
+#     voice_state: discord.VoiceState = ctx.author.voice
+#     voice_client: discord.VoiceClient
+#     if voice_state != None:
+#         voice_channel: discord.VoiceChannel = voice_state.channel
+#         try:
+#             voice_client = await voice_channel.connect()
+#         except:
+#             curr_voice_client: discord.VoiceClient = discord.utils.get(ctx.bot.voice_clients, guild=ctx.guild)
+#             voice_client = await curr_voice_client.move_to(voice_channel)
+#         start_recording(voice_client, ctx.guild, ctx.channel)
+#     else:
+#         await ctx.send("You're not connected to a voice channel")
+
+# @bot.command(name="clip", aliases=["capture, clipthatshit"])
+# async def clip_vc(ctx: commands.Context, *args):
+#     voice_client: discord.VoiceClient = vc_connections[ctx.guild.id]
+#     if voice_client != None:
+#         stop_recording(voice_client, ctx.guild)
+#         start_recording(voice_client, ctx.guild, ctx.channel)
+#     else:
+#         await ctx.send(f"I need to be in a voice channel {ctx.author}")
+
+# @bot.command(name="leave", aliases=["stopstalking"])
+# async def leave_vc(ctx: commands.Context):
+#     voice_client: discord.VoiceClient = vc_connections[ctx.guild.id]
+#     if voice_client != None:
+#         await voice_client.disconnect()
+#         del vc_connections[ctx.guild.id]
+#     else:
+#         await ctx.send("I'm not in a voice channel")
         
 @bot.command(name="nextarchivedate", aliases=["archivedate"])
 async def next_archive_date_command(ctx: commands.Context) -> None:
     if ctx.author.id == ctx.guild.owner_id:
-        await ctx.send("Next archive date: " + 
-                       str(get_next_archive_date(DATE_FILE)))
+        await ctx.send("Next archive date: " + str(get_next_archive_date(DATE_FILE)))
     else:
         await ctx.send("Only the owner can use this command")
 
@@ -196,13 +203,22 @@ def update_next_archive_date(filename: str, archive_freq: timedelta) -> None:
     with open(filename, "w") as f:
         json.dump(date_json, f, indent=4)
 
-async def finished_callback(sink: MP3Sink, ctx: commands.Context):
-    # Here you can access the recorded files:
+def start_recording(voice_client: discord.VoiceClient, guild: discord.Guild, channel: discord.TextChannel) -> None:
+    vc_connections.update({guild.id: voice_client})
+    voice_channel = voice_client.channel
+    voice_client.start_recording(WaveSink(), get_audio_files, voice_channel, channel)
+
+def stop_recording(voice_client: discord.VoiceClient, guild: discord.Guild, send: bool=True) -> None:
+    voice_client.stop_recording()
+
+async def get_audio_files(sink: WaveSink, vc: discord.VoiceChannel, channel: discord.TextChannel) -> None:
     recorded_users = [
         f"<@{user_id}>"
         for user_id, audio in sink.audio_data.items()
     ]
-    files = [discord.File(audio.file, f"{user_id}.{sink.encoding}") for user_id, audio in sink.audio_data.items()]
-    await ctx.channel.send(f"Finished! Recorded audio for {', '.join(recorded_users)}.", files=files) 
+    now = datetime.now()
+    timestamp = f"{str(now.date())}_{now.hour}-{now.minute}-{now.second}"
+    files = [discord.File(audio.file, f"vcclip_{timestamp}.{sink.encoding}") for user_id, audio in sink.audio_data.items()]  # List down the files.
+    await channel.send(f"Clipped all audio from the \"{vc.name}\" voice chat:", files=files) 
 
 bot.run(os.getenv("BOT_TOKEN"))

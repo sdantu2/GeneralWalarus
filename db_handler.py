@@ -1,4 +1,6 @@
 from datetime import datetime
+from bson import Int64
+import bson
 import discord
 from gridfs import Collection
 from pymongo import MongoClient
@@ -31,22 +33,30 @@ class DbHandler:
                                         "$inc": stats_data
                                     }, 
                                     upsert = True).upserted_id != None
-    
+
     def log_server(self, discord_server: discord.Guild) -> bool:
         connected_servers = self.__db.connected_servers
+        server_exists = bool(connected_servers.find_one({"_id": Int64(discord_server.id)}))
         icon_exists = bool(discord_server.icon)
+        description_exists = bool(discord_server.description)
         server_data = {
             "_id": discord_server.id,
             "name": str(discord_server.name),
-            "description": str(discord_server.description),
+            "description": str(discord_server.description) if description_exists else "",
             "icon_url": str(discord_server.icon.url) if icon_exists else "",
             "creation_at": discord_server.created_at,
             "last_updated": datetime.now()
         }
+        if not server_exists:
+            server_data["joined"] = datetime.now()
         return self.__log(discord_server, connected_servers, server_data)
     
-    def remove_discord_server(self, discord_server: discord.Guild) -> bool:
+    # Remove the given server from all relevant collections, returns the number of documents deleted
+    def remove_discord_server(self, discord_server: discord.Guild) -> int:
         connected_servers = self.__db.connected_servers
-        return connected_servers.delete_one({"_id": discord_server.id}).deleted_count == 1
+        user_stats = self.__db.user_stats
+        total = connected_servers.delete_many({"_id": discord_server.id}).deleted_count
+        total += user_stats.delete_many({"_id.server_id": discord_server.id}).deleted_count
+        return total
         
         
