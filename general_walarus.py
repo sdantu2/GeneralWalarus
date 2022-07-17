@@ -21,11 +21,6 @@ vc_connections = {}
 @bot.event
 async def on_ready() -> None:
     print("General Walarus is up and ready in {} server(s)".format(len(bot.guilds)))
-    if os.getenv("ENV_NAME") == "production":
-        for server in bot.guilds:
-            announce_chat: discord.TextChannel = discord.utils.get(server.text_channels, name="general")
-            announce_chat = server.channels.pop(0) if announce_chat == None else announce_chat
-            await announce_chat.send("A new version of me just rolled out @everyone")
     await repeat_archive()
     
 @bot.event
