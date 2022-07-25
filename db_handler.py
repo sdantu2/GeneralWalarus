@@ -1,11 +1,17 @@
-from datetime import datetime
+from datetime import datetime, timedelta
+from multiprocessing import get_context
+import os
+from bson import ObjectId
 import discord
 from pymongo import MongoClient
+from dotenv import load_dotenv
 
 class DbHandler:
+
     def __init__(self, db_conn_string: str) -> None:
         self.__db = MongoClient(db_conn_string).general_walarus
         self.__log = lambda discord_server, collection, data: collection.update_one({"_id": discord_server.id}, {"$set": data}, upsert = True).upserted_id != None
+        self.__DATE_ID = ObjectId("62df0eeb1f3ca1fa0645aef0")
     
     def log_user_stat(self, discord_server: discord.Guild, user: discord.User, target_stat: str, inc = 1) -> bool:
         user_stats = self.__db.user_stats
@@ -55,5 +61,24 @@ class DbHandler:
         total = connected_servers.delete_many({"_id": discord_server.id}).deleted_count
         total += user_stats.delete_many({"_id.server_id": discord_server.id}).deleted_count
         return total
+
+    def get_next_archive_date(self) -> datetime:
+        collection = self.__db.next_archive_date
+        data = collection.find_one({"_id": self.__DATE_ID}, {"_id": 0})
+        return datetime(data["year"], data["month"], data["day"], data["hour"], data["minute"], data["second"])
+
+    def update_next_archive_date(self, archive_freq: timedelta):
+        old_date = self.get_next_archive_date()
+        new_date: datetime = old_date + archive_freq
+        new_date_fields = {
+            "year": new_date.year,
+            "month": new_date.month,
+            "day": new_date.day,
+            "hour": new_date.hour,
+            "minute": new_date.minute,
+            "second": new_date.second
+        }
+        collection = self.__db.next_archive_date
+        collection.update_one({"_id": self.__DATE_ID}, {"$set": new_date_fields}, upsert=True)
         
         
