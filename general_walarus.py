@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime, date, timedelta
+import random
 from db_handler import DbHandler
 import discord
 from discord.ext import commands
@@ -11,16 +12,19 @@ import os
 # Setup
 intents = discord.Intents.default()
 intents.message_content = True
+intents.members = True
 load_dotenv()
 bot = commands.Bot(command_prefix="$", intents=intents)
 db = DbHandler(os.getenv("DB_CONN_STRING"))
 vc_connections = {}
+active_role_change = False
+next_role_change = None
 
 # Prints in console when bot is ready to be used
 @bot.event
 async def on_ready() -> None:
     print("General Walarus is up and ready in {} server(s)".format(len(bot.guilds)))
-    await repeat_archive()
+    await repeat_archive(timedelta(weeks=2))
     
 @bot.event
 async def on_message(message: discord.Message) -> None:
@@ -77,41 +81,41 @@ async def log_server_into_database(ctx: commands.Context):
     else:
         await ctx.send("Only the owner can use this command")
 
-@bot.command(name="join", aliases=["connect", "startstalking"])
-async def join_vc(ctx: commands.Context):    
-    voice_state: discord.VoiceState = ctx.author.voice
-    voice_client: discord.VoiceClient
-    if voice_state != None:
-        voice_channel: discord.VoiceChannel = voice_state.channel
-        try:
-            voice_client = await voice_channel.connect()
-        except:
-            curr_voice_client: discord.VoiceClient = discord.utils.get(ctx.bot.voice_clients, guild=ctx.guild)
-            voice_client = await curr_voice_client.move_to(voice_channel)
-        vc_connections.update({ctx.guild.id: voice_client})
-        voice_client.start_recording(WaveSink(), once_stop_recording, voice_client.channel, ctx.channel)
-        print(f"started recording for {voice_client.channel.name}")
-    else:
-        await ctx.send("You're not connected to a voice channel")
+# @bot.command(name="join", aliases=["connect", "startstalking"])
+# async def join_vc(ctx: commands.Context):    
+#     voice_state: discord.VoiceState = ctx.author.voice
+#     voice_client: discord.VoiceClient
+#     if voice_state != None:
+#         voice_channel: discord.VoiceChannel = voice_state.channel
+#         try:
+#             voice_client = await voice_channel.connect()
+#         except:
+#             curr_voice_client: discord.VoiceClient = discord.utils.get(ctx.bot.voice_clients, guild=ctx.guild)
+#             voice_client = await curr_voice_client.move_to(voice_channel)
+#         vc_connections.update({ctx.guild.id: voice_client})
+#         voice_client.start_recording(WaveSink(), once_stop_recording, voice_client.channel, ctx.channel)
+#         print(f"started recording for {voice_client.channel.name}")
+#     else:
+#         await ctx.send("You're not connected to a voice channel")
 
-@bot.command(name="clip", aliases=["capture", "clipthatshit"])
-async def clip_vc(ctx: commands.Context, *args):
-    voice_client: discord.VoiceClient = vc_connections[ctx.guild.id]
-    if voice_client != None:
-        voice_client.stop_recording()
-        voice_client.start_recording(WaveSink(), once_stop_recording, voice_client.channel, ctx.channel)
-    else:
-        await ctx.send(f"I need to be in a voice channel {ctx.author}")
+# @bot.command(name="clip", aliases=["capture", "clipthatshit"])
+# async def clip_vc(ctx: commands.Context, *args):
+#     voice_client: discord.VoiceClient = vc_connections[ctx.guild.id]
+#     if voice_client != None:
+#         voice_client.stop_recording()
+#         voice_client.start_recording(WaveSink(), once_stop_recording, voice_client.channel, ctx.channel)
+#     else:
+#         await ctx.send(f"I need to be in a voice channel {ctx.author}")
 
-@bot.command(name="leave", aliases=["disconnect", "stopstalking"])
-async def leave_vc(ctx: commands.Context):
-    voice_client: discord.VoiceClient = vc_connections[ctx.guild.id]
-    if voice_client != None:
-        del vc_connections[ctx.guild.id]
-        await voice_client.disconnect()
-        voice_client.stop_recording()
-    else:
-        await ctx.send("I'm not in a voice channel")
+# @bot.command(name="leave", aliases=["disconnect", "stopstalking"])
+# async def leave_vc(ctx: commands.Context):
+#     voice_client: discord.VoiceClient = vc_connections[ctx.guild.id]
+#     if voice_client != None:
+#         del vc_connections[ctx.guild.id]
+#         await voice_client.disconnect()
+#         voice_client.stop_recording()
+#     else:
+#         await ctx.send("I'm not in a voice channel")
         
 @bot.command(name="nextarchivedate", aliases=["archivedate"])
 async def next_archive_date_command(ctx: commands.Context) -> None:
@@ -119,6 +123,20 @@ async def next_archive_date_command(ctx: commands.Context) -> None:
         await ctx.send("Next archive date: " + str(db.get_next_archive_date()))
     else:
         await ctx.send("Only the owner can use this command")
+
+@bot.command(name="nextrolechange", aliases=["nextrolechangetime"])
+async def next_role_change_time(ctx: commands.Context):
+    await ctx.send(f"The next role change will be at {next_role_change}")
+
+@bot.command(name="changeroles", aliases=["reorganizeroles", "reorganize"])
+async def change_roles(ctx: commands.Context):
+    if active_role_change:
+        await ctx.send("A role change is already active")
+        return
+    elif ctx.author.id != ctx.guild.owner_id:
+        await ctx.send("Only the Supreme Leader can use this command")
+        return
+    await carry_out_role_change(ctx, timedelta(minutes=15))
 
 # Get the current time that is being read
 @bot.command(name="time")
@@ -131,7 +149,7 @@ async def time(ctx: commands.Context) -> None:
 # Command reserved for testing purposes
 @bot.command(name="test")
 async def test(ctx: commands.Context) -> None:
-    print(f"{len(vc_connections)} connections:\n{str(vc_connections)}")
+    pass
 
 # Handles the actual archiving of general chat
 async def archive_general(guild: discord.Guild, general_cat_name=None, archive_cat_name="Archive", freq=2) -> None:
@@ -139,14 +157,46 @@ async def archive_general(guild: discord.Guild, general_cat_name=None, archive_c
         general_category = discord.utils.get(guild.categories, name=general_cat_name)
         archive_category = discord.utils.get(guild.categories, name="Archive")
         chat_to_archive = discord.utils.get(guild.text_channels, name="general")
-        await chat_to_archive.move(beginning=True, category=archive_category, 
-                                    sync_permissions=True)
-        await chat_to_archive.edit(name=get_archived_name())
-        new_channel = await guild.create_text_channel("general", 
-                                                    category=general_category)
+        await chat_to_archive.move(beginning=True, category=archive_category, sync_permissions=True)
+        await chat_to_archive.edit(name=db.get_archived_name())
+        new_channel = await guild.create_text_channel("general", category=general_category)
         await new_channel.send("good morning @everyone")   
     except Exception as ex:
         raise Exception(str(ex))
+
+#Handles repeatedly carrying out role changes until finished
+async def carry_out_role_change(ctx: commands.Context, freq: timedelta):
+    global active_role_change
+    active_role_change = True
+    global next_role_change
+    members = list(filter(lambda member: not member.bot, ctx.guild.members))
+    members.remove(discord.utils.get(ctx.guild.members, id=ctx.guild.owner_id))
+    roles = ["CEO of the Republic", 
+             "Indian of the Republic",
+             "The Softest of the Softest Carries", 
+             "Chinese of the Republic", 
+             "Economist of the Republic", 
+             "Pope of the Republic"]
+    roles_used = []
+    start = datetime.now()
+    next = (start + freq).time()
+    next_role_change = datetime.strptime(f"{next.hour}:{next.minute}","%H:%M").strftime("%I:%M %p")
+    await ctx.send(f"Role change has begun @everyone. The first role change will be at {next_role_change}")
+    while len(members) > 0:
+        await asyncio.sleep(freq.total_seconds())
+        member_num = random.randint(0, len(members) - 1)
+        role_num = random.randint(0, len(roles_used) - 1) if len(roles) == 0 else random.randint(0, len(roles) - 1)
+        chosen_one = members[member_num]
+        chosen_role = roles_used[role_num] if len(roles) == 0 else roles[role_num]
+        await ctx.send(f"Role change announcement @everyone: {chosen_one.name}'s new role will be {chosen_role}")
+        next = datetime.now() + freq
+        next_role_change = datetime.strptime(f"{next.hour}:{next.minute}","%H:%M").strftime("%I:%M %p")
+        roles.remove(chosen_role)
+        roles_used.append(chosen_role)
+        members.remove(chosen_one)
+    await ctx.send("Roles have all been reassigned")
+    active_role_change = False
+    next_role_change = None
 
 # Returns the archived name of the archived general chat
 def get_archived_name() -> str:
@@ -157,11 +207,10 @@ def get_archived_name() -> str:
     return "general-" + month + "-" + day + "-" + year[len(year) - 2:]
 
 # Handles repeatedly archiving general chat
-async def repeat_archive() -> None:
-    ARCHIVE_FREQ_WEEKS = timedelta(weeks=2)
+async def repeat_archive(freq: timedelta) -> None:
     await sleep_until_archive()
     while True:
-        db.update_next_archive_date(ARCHIVE_FREQ_WEEKS)
+        db.update_next_archive_date(freq)
         for guild in bot.guilds:
             try:
                 await archive_general(guild=guild)
