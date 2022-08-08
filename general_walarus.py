@@ -204,10 +204,10 @@ async def repeat_archive(freq: timedelta) -> None:
     while True:
         db.update_next_archive_date(freq)
         for guild in bot.guilds:
+            now = datetime.now()
             try:
                 await archive_general(guild=guild)
-                now = datetime.now()
-                discord.utils.get(guild.channels, name=get_archived_name())
+                discord.utils.get(guild.channels, name=db.get_archived_name())
                 print(str(now) + ': general archived in "{}" (id: {})'.format(guild.name, guild.id))
             except Exception as ex:
                 print(str(now) + ': there was an error archiving general in "{}" (id: {}): {}'.format(guild.name, guild.id, str(ex)))
