@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime, date, timedelta
+from datetime import datetime, timedelta
 import random
 from db_handler import DbHandler
 import discord
@@ -197,14 +197,6 @@ async def carry_out_role_change(ctx: commands.Context, freq: timedelta):
     await ctx.send("Roles have all been reassigned")
     active_role_change = False
     next_role_change = None
-
-# Returns the archived name of the archived general chat
-def get_archived_name() -> str:
-    today = date.today()
-    month = str(today.month)
-    day = str(today.day)
-    year = str(today.year)
-    return "general-" + month + "-" + day + "-" + year[len(year) - 2:]
 
 # Handles repeatedly archiving general chat
 async def repeat_archive(freq: timedelta) -> None:

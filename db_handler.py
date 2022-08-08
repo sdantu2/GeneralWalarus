@@ -1,10 +1,11 @@
-from datetime import datetime, timedelta
+from bson import ObjectId
+from datetime import datetime, date, timedelta
+import discord
+from discord.ext import commands
+from dotenv import load_dotenv
 from multiprocessing import get_context
 import os
-from bson import ObjectId
-import discord
 from pymongo import MongoClient
-from dotenv import load_dotenv
 
 class DbHandler:
 
@@ -80,5 +81,19 @@ class DbHandler:
         }
         collection = self.__db.next_archive_date
         collection.update_one({"_id": self.__DATE_ID}, {"$set": new_date_fields}, upsert=True)
+
+    def log_role_change(self, ctx: commands.Context):
+        collection = self.__db.role_changes
+        
+    # Returns the archived name of the archived general chat
+    def get_archived_name(self) -> str:
+        today = date.today()
+        month = str(today.month)
+        day = str(today.day)
+        year = str(today.year)
+        return "general-" + month + "-" + day + "-" + year[len(year) - 2:]
+        
+
+    
         
         
