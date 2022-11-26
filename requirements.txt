@@ -1,1 +1,4 @@
-discord.py
+py-cord[voice]==2.0.0
+pymongo[srv]
+PyNaCl
+python-dotenv
