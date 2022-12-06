@@ -136,7 +136,7 @@ async def change_roles(ctx: commands.Context):
     elif ctx.author.id != ctx.guild.owner_id:
         await ctx.send("Only the Supreme Leader can use this command")
         return
-    await carry_out_role_change(ctx, timedelta(minutes=15))
+    await carry_out_role_change(ctx, timedelta(minutes=3))
 
 # Get the current time that is being read
 @bot.command(name="time")
