@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import random
 from db_handler import DbHandler
 import discord
@@ -15,7 +15,7 @@ intents.message_content = True
 intents.members = True
 load_dotenv()
 bot = commands.Bot(command_prefix="$", intents=intents)
-db = DbHandler(os.getenv("DB_CONN_STRING"))
+db = DbHandler(str(os.getenv("DB_CONN_STRING")))
 vc_connections = {}
 active_role_change = False
 next_role_change = None
@@ -126,15 +126,23 @@ async def next_archive_date_command(ctx: commands.Context) -> None:
 
 @bot.command(name="nextrolechange", aliases=["nextrolechangetime"])
 async def next_role_change_time(ctx: commands.Context):
-    await ctx.send(f"The next role change will be at {next_role_change}")
+    if active_role_change:
+        await ctx.send(f"The next role change will be at {next_role_change}")
+    else:
+        await ctx.send("There is no role change currently active")
 
 @bot.command(name="changeroles", aliases=["reorganizeroles", "reorganize"])
-async def change_roles(ctx: commands.Context):
-    if active_role_change:
-        await ctx.send("A role change is already active")
-        return
-    elif ctx.author.id != ctx.guild.owner_id:
+async def change_roles(ctx: commands.Context, arg="default"):
+    global active_role_change
+    if ctx.author.id != ctx.guild.owner_id:
         await ctx.send("Only the Supreme Leader can use this command")
+        return
+    elif active_role_change:
+        if str(arg).lower() == "cancel":
+            await ctx.send("Stopping current role change...")
+            active_role_change = False
+        else:
+            await ctx.send("A role change is already active")
         return
     await carry_out_role_change(ctx, timedelta(minutes=3))
 
@@ -178,11 +186,11 @@ async def carry_out_role_change(ctx: commands.Context, freq: timedelta):
              "Economist of the Republic", 
              "Pope of the Republic"]
     roles_used = []
-    start = datetime.now()
+    start = datetime.now() - timedelta(hours=5) # set to EST
     next = (start + freq).time()
     next_role_change = datetime.strptime(f"{next.hour}:{next.minute}","%H:%M").strftime("%I:%M %p")
-    await ctx.send(f"Role change has begun @everyone. The first role change will be at {next_role_change}")
-    while len(members) > 0:
+    await ctx.send(f"Role change has begun @everyone. The first role change will be at {next_role_change} EST")
+    while len(members) > 0 and active_role_change:
         await asyncio.sleep(freq.total_seconds())
         member_num = random.randint(0, len(members) - 1)
         role_num = random.randint(0, len(roles_used) - 1) if len(roles) == 0 else random.randint(0, len(roles) - 1)

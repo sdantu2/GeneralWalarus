@@ -1,4 +1,4 @@
-py-cord[voice]==2.0.0
+py-cord
 pymongo[srv]
 PyNaCl
 python-dotenv
