@@ -1,60 +1,75 @@
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 import random
-from db_handler import DbHandler
+from typing import cast
 import discord
 from discord.ext import commands
 from discord.sinks import WaveSink
+from database.db_handler import DbHandler
+from discord.ext import commands
+import discord.utils
 from dotenv import load_dotenv
-import json
+from models.election import Election
+from models.server import Server
 import os
+from processes import servers, vc_connections, elections
+from pytz import timezone
+from utilities import timef
 
 # Setup
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 load_dotenv()
-bot = commands.Bot(command_prefix="$", intents=intents)
+bot = commands.Bot(command_prefix="$", intents=intents) # type: ignore
 db = DbHandler(str(os.getenv("DB_CONN_STRING")))
-vc_connections = {}
-active_role_change = False
-next_role_change = None
 
 # Prints in console when bot is ready to be used
 @bot.event
 async def on_ready() -> None:
-    print("General Walarus is up and ready in {} server(s)".format(len(bot.guilds)))
+    rshuffle: list[str] = ["CEO of the Republic", 
+             "Indian of the Republic",
+             "The Softest of the Softest Carries", 
+             "Chinese of the Republic", 
+             "Economist of the Republic", 
+             "Pope of the Republic"]
+    ushuffle: list[discord.User] = []
+    for guild in bot.guilds:
+        servers[guild] = Server(guild, rshuffle, ushuffle)
+    print(f"General Walarus active in {len(servers)} server(s)")
     await repeat_archive(timedelta(weeks=2))
     
 @bot.event
 async def on_message(message: discord.Message) -> None:
-    db.log_user_stat(message.guild, message.author, "sent_messages")
+    if message.guild is None:
+        return
+    db.log_user_stat(message.guild, cast(discord.User, message.author), "sent_messages")
     for user in message.mentions:
-        db.log_user_stat(message.guild, user, "mentioned")
+        db.log_user_stat(message.guild, cast(discord.User, user), "mentioned")
     await bot.process_commands(message)
 
 @bot.event
 async def on_guild_join(guild: discord.Guild) -> None:
-    print('General Walarus joined guild "{}" (id: {})'.format(guild.name, guild.id))
+    print(f"General Walarus joined guild '{guild.name}' (id: {guild.id})")
     db.log_server(guild)
 
 @bot.event
 async def on_guild_remove(guild: discord.Guild) -> None:
-    print('General Walarus has been removed from guild "{}" (id: {})'.format(guild.name, guild.id))
+    print(f"General Walarus has been removed from guild '{guild.name}' (id: {guild.id})")
     print(f"{db.remove_discord_server(guild)} documents removed from database")
 
 @bot.event
 async def on_guild_update(before: discord.Guild, after: discord.Guild):
     db.log_server(after)
-    print('Server {} was updated'.format(before.id))
+    print(f"Server {before.id} was updated")
 
 # Command to manually run archive function for testing purposes
 @bot.command(name="archivegeneral", aliases=["archive"])
-async def test_archive_general(ctx: commands.Context, general_cat_name=None, 
-                               archive_cat_name="Archive", freq=2) -> None:
+async def test_archive_general(ctx: commands.Context, general_cat_name=None, archive_cat_name="Archive", freq=2) -> None:
+    if ctx.guild is None: 
+        raise Exception("ctx.guild is None")
     if ctx.author.id == ctx.guild.owner_id:
-        await archive_general(ctx.guild, general_cat_name=general_cat_name, 
-                              archive_cat_name=archive_cat_name, freq=freq)
+        await archive_general(ctx.guild, general_cat_name=general_cat_name, archive_cat_name=archive_cat_name, freq=freq)
     else:
         await ctx.send("Only the owner can use this command")
         
@@ -72,6 +87,8 @@ async def echo(ctx: commands.Context, *words) -> None:
     
 @bot.command(name="intodatabase", aliases=["intodb"])
 async def log_server_into_database(ctx: commands.Context):
+    if ctx.guild is None: 
+        raise Exception("ctx.guild is None")
     if ctx.author.id == ctx.guild.owner_id:
         created_new = db.log_server(ctx.guild)
         if created_new:
@@ -119,38 +136,49 @@ async def log_server_into_database(ctx: commands.Context):
         
 @bot.command(name="nextarchivedate", aliases=["archivedate"])
 async def next_archive_date_command(ctx: commands.Context) -> None:
+    if ctx.guild is None: 
+        raise Exception("ctx.guild is None")
     if ctx.author.id == ctx.guild.owner_id:
         await ctx.send("Next archive date: " + str(db.get_next_archive_date()))
     else:
         await ctx.send("Only the owner can use this command")
 
-@bot.command(name="nextrolechange", aliases=["nextrolechangetime"])
-async def next_role_change_time(ctx: commands.Context):
+@bot.command(name="nextelection")
+async def next_election_time(ctx: commands.Context):
     if active_role_change:
         await ctx.send(f"The next role change will be at {next_role_change}")
     else:
         await ctx.send("There is no role change currently active")
 
-@bot.command(name="changeroles", aliases=["reorganizeroles", "reorganize"])
+@bot.command(name="election", aliases=["startelection"])
 async def change_roles(ctx: commands.Context, arg="default"):
-    global active_role_change
+    if ctx.guild is None: 
+        raise Exception("ctx.guild is None")
     if ctx.author.id != ctx.guild.owner_id:
         await ctx.send("Only the Supreme Leader can use this command")
         return
-    elif active_role_change:
+    election: Election | None = elections.get(ctx.guild)
+    if election is not None:
         if str(arg).lower() == "cancel":
             await ctx.send("Stopping current role change...")
-            active_role_change = False
+            del elections[ctx.guild]
         else:
             await ctx.send("A role change is already active")
         return
-    await carry_out_role_change(ctx, timedelta(minutes=3))
+    server: Server = cast(Server, servers.get(ctx.guild)) 
+    now: datetime = datetime.now(tz=timezone(server.timezone))
+    elections[ctx.guild] = Election(server, now, server.rshuffle, server.ushuffle)
+    await carry_out_election(ctx, timedelta(minutes=server.rc_int))
 
-# Get the current time that is being read
 @bot.command(name="time")
 async def time(ctx: commands.Context) -> None:
+    """ Get the current time that is being read """
+    if ctx.guild is None:
+        raise Exception("ctx.guild is None")
     if ctx.author.id == ctx.guild.owner_id:
-        await ctx.send("Current date/time on the server: " + str(datetime.now()))
+        server: Server = cast(Server, servers.get(ctx.guild))
+        now: datetime = datetime.now(tz=timezone(server.timezone))
+        await ctx.send(f"Current date/time on the server: {now.date()}, {timef(now)}")
     else:
         await ctx.send("Only the owner can use this command")
 
@@ -165,20 +193,22 @@ async def archive_general(guild: discord.Guild, general_cat_name=None, archive_c
         general_category = discord.utils.get(guild.categories, name=general_cat_name)
         archive_category = discord.utils.get(guild.categories, name="Archive")
         chat_to_archive = discord.utils.get(guild.text_channels, name="general")
-        await chat_to_archive.move(beginning=True, category=archive_category, sync_permissions=True)
-        await chat_to_archive.edit(name=db.get_archived_name())
+        await cast(discord.TextChannel, chat_to_archive).move(beginning=True, category=archive_category, sync_permissions=True)
+        await cast(discord.TextChannel, chat_to_archive).edit(name=db.get_archived_name())
         new_channel = await guild.create_text_channel("general", category=general_category)
         await new_channel.send("good morning @everyone")   
     except Exception as ex:
         raise Exception(str(ex))
 
-#Handles repeatedly carrying out role changes until finished
-async def carry_out_role_change(ctx: commands.Context, freq: timedelta):
+async def carry_out_election(ctx: commands.Context, freq: timedelta):
+    """ Handles repeatedly carrying out elections until finished """
+    if ctx.guild is None:
+        raise Exception("ctx.guild is None")
     global active_role_change
     active_role_change = True
     global next_role_change
     members = list(filter(lambda member: not member.bot, ctx.guild.members))
-    members.remove(discord.utils.get(ctx.guild.members, id=ctx.guild.owner_id))
+    members.remove(cast(discord.Member, discord.utils.get(ctx.guild.members, id=ctx.guild.owner_id)))
     roles = ["CEO of the Republic", 
              "Indian of the Republic",
              "The Softest of the Softest Carries", 
@@ -206,8 +236,8 @@ async def carry_out_role_change(ctx: commands.Context, freq: timedelta):
     active_role_change = False
     next_role_change = None
 
-# Handles repeatedly archiving general chat
 async def repeat_archive(freq: timedelta) -> None:
+    """ Handles repeatedly archiving general chat """
     await sleep_until_archive()
     while True:
         db.update_next_archive_date(freq)
@@ -216,13 +246,13 @@ async def repeat_archive(freq: timedelta) -> None:
             try:
                 await archive_general(guild=guild)
                 discord.utils.get(guild.channels, name=db.get_archived_name())
-                print(str(now) + ': general archived in "{}" (id: {})'.format(guild.name, guild.id))
+                print(str(now) + f": general archived in '{guild.name}' (id: {guild.id})")
             except Exception as ex:
-                print(str(now) + ': there was an error archiving general in "{}" (id: {}): {}'.format(guild.name, guild.id, str(ex)))
+                print(str(now) + f": there was an error archiving general in '{guild.name}' (id: {guild.id}): {str(ex)}")
         await sleep_until_archive()
 
-# Handles waiting for the next archive date
 async def sleep_until_archive() -> None:
+    """ Handles waiting for the next archive date """
     now = datetime.now()
     then = db.get_next_archive_date()
     wait_time = (then - now).total_seconds()
@@ -241,5 +271,3 @@ async def once_stop_recording(sink: WaveSink, vc: discord.VoiceChannel, tc: disc
     timestamp = f"{str(now.date())}_{now.hour}-{now.minute}-{now.second}"
     files = [discord.File(audio.file, f"vcclip_{timestamp}.{sink.encoding}") for user_id, audio in sink.audio_data.items()]  # List down the files.
     await tc.send(f"Clipped all audio from the \"{vc.name}\" voice chat:", files=files) 
-
-bot.run(os.getenv("BOT_TOKEN"))

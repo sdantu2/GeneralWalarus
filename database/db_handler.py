@@ -41,13 +41,13 @@ class DbHandler:
     def log_server(self, discord_server: discord.Guild) -> bool:
         connected_servers = self.__db.connected_servers
         server_exists = bool(connected_servers.find_one({"_id": discord_server.id}))
-        icon_exists = bool(discord_server.icon)
+        icon_url = "" if discord_server.icon is None else discord_server.icon.url
         description_exists = bool(discord_server.description)
         server_data = {
             "_id": discord_server.id,
             "name": str(discord_server.name),
             "description": str(discord_server.description) if description_exists else "",
-            "icon_url": str(discord_server.icon.url) if icon_exists else "",
+            "icon_url": icon_url,
             "creation_at": discord_server.created_at,
             "last_updated": datetime.now()
         }
@@ -66,6 +66,8 @@ class DbHandler:
     def get_next_archive_date(self) -> datetime:
         collection = self.__db.next_archive_date
         data = collection.find_one({"_id": self.__DATE_ID}, {"_id": 0})
+        if data is None:
+            raise Exception("Couldn't find document")
         return datetime(data["year"], data["month"], data["day"], data["hour"], data["minute"], data["second"])
 
     def update_next_archive_date(self, archive_freq: timedelta):
