@@ -21,12 +21,13 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 load_dotenv()
-bot = commands.Bot(command_prefix="$", intents=intents) # type: ignore
-db = DbHandler(str(os.getenv("DB_CONN_STRING")))
+bot: discord.Bot = commands.Bot(command_prefix="$", intents=intents) # type: ignore
+db : DbHandler = DbHandler(str(os.getenv("DB_CONN_STRING")))
 
 # Prints in console when bot is ready to be used
 @bot.event
 async def on_ready() -> None:
+    """ Event that runs once General Walarus is up and running (v2) """
     rshuffle: list[str] = ["CEO of the Republic", 
              "Indian of the Republic",
              "The Softest of the Softest Carries", 
@@ -41,6 +42,7 @@ async def on_ready() -> None:
     
 @bot.event
 async def on_message(message: discord.Message) -> None:
+    """ Event that runs whenever a user sends something in a text channel (v2) """
     if message.guild is None:
         return
     db.log_user_stat(message.guild, cast(discord.User, message.author), "sent_messages")
@@ -50,22 +52,31 @@ async def on_message(message: discord.Message) -> None:
 
 @bot.event
 async def on_guild_join(guild: discord.Guild) -> None:
+    """ Event that runs whenever General Walarus joins a new server\n 
+        Servers information is added to the database (v2)
+    """
     print(f"General Walarus joined guild '{guild.name}' (id: {guild.id})")
     db.log_server(guild)
 
 @bot.event
 async def on_guild_remove(guild: discord.Guild) -> None:
+    """ Event that runs when General Walarus gets removed from a server.\n
+        Server information is deleted from database (v2)
+    """
     print(f"General Walarus has been removed from guild '{guild.name}' (id: {guild.id})")
     print(f"{db.remove_discord_server(guild)} documents removed from database")
 
 @bot.event
 async def on_guild_update(before: discord.Guild, after: discord.Guild):
+    """ Event that runs when a server's information gets updated.\n
+        Server information gets updated in the database (v2)
+    """
     db.log_server(after)
     print(f"Server {before.id} was updated")
 
-# Command to manually run archive function for testing purposes
 @bot.command(name="archivegeneral", aliases=["archive"])
 async def test_archive_general(ctx: commands.Context, general_cat_name=None, archive_cat_name="Archive", freq=2) -> None:
+    """ Command that manually runs archive function for testing purposes (v2) """
     if ctx.guild is None: 
         raise Exception("ctx.guild is None")
     if ctx.author.id == ctx.guild.owner_id:
@@ -73,13 +84,14 @@ async def test_archive_general(ctx: commands.Context, general_cat_name=None, arc
     else:
         await ctx.send("Only the owner can use this command")
         
-# Dummy command
 @bot.command(name="bruh")
 async def bruh(ctx: commands.Context) -> None:
+    """ Stupid command that just has General Walarus send 'bruh' (v2) """
     await ctx.send("bruh")
     
-@bot.command(name="echo")
+@bot.command(name="echo", aliases=["say"])
 async def echo(ctx: commands.Context, *words) -> None:
+    """ Command that has General Walarus repeat back command args (v2) """
     message = ""
     for word in words:
         message += word + " "
@@ -87,6 +99,7 @@ async def echo(ctx: commands.Context, *words) -> None:
     
 @bot.command(name="intodatabase", aliases=["intodb"])
 async def log_server_into_database(ctx: commands.Context):
+    """ Command to manually log a server into the database (v2) """
     if ctx.guild is None: 
         raise Exception("ctx.guild is None")
     if ctx.author.id == ctx.guild.owner_id:
@@ -134,24 +147,27 @@ async def log_server_into_database(ctx: commands.Context):
 #     else:
 #         await ctx.send("I'm not in a voice channel")
         
-@bot.command(name="nextarchivedate", aliases=["archivedate"])
+@bot.command(name="nextarchivedate", aliases=["nextarchive"])
 async def next_archive_date_command(ctx: commands.Context) -> None:
+    """ Command that sends the date of the next general chat archive. Assumes global archive date (v2) """
     if ctx.guild is None: 
         raise Exception("ctx.guild is None")
-    if ctx.author.id == ctx.guild.owner_id:
-        await ctx.send("Next archive date: " + str(db.get_next_archive_date()))
-    else:
-        await ctx.send("Only the owner can use this command")
+    await ctx.send("Next archive date: " + str(db.get_next_archive_date()))
 
-@bot.command(name="nextelection")
-async def next_election_time(ctx: commands.Context):
-    if active_role_change:
-        await ctx.send(f"The next role change will be at {next_role_change}")
+@bot.command(name="nextresult", aliases=["nextelectionresult"])
+async def next_election_result(ctx: commands.Context):
+    """ Command that sends the time of the next election result (v2) """
+    if not ctx.guild:
+        raise Exception("ctx.guild is None")
+    active_election: Election | None = elections.get(ctx.guild)
+    if active_election:
+        await ctx.send(f"The next role change will be at {active_election.next_time}")
     else:
         await ctx.send("There is no role change currently active")
 
 @bot.command(name="election", aliases=["startelection"])
 async def change_roles(ctx: commands.Context, arg="default"):
+    """ Command that initiates an automated election (v2) """
     if ctx.guild is None: 
         raise Exception("ctx.guild is None")
     if ctx.author.id != ctx.guild.owner_id:
@@ -170,25 +186,25 @@ async def change_roles(ctx: commands.Context, arg="default"):
     elections[ctx.guild] = Election(server, now, server.rshuffle, server.ushuffle)
     await carry_out_election(ctx, timedelta(minutes=server.rc_int))
 
-@bot.command(name="time")
+@bot.command(name="datetime", aliases=["date", "time"])
 async def time(ctx: commands.Context) -> None:
-    """ Get the current time that is being read """
+    """ Get the current datetime in the timezone of the given server (v2) """
     if ctx.guild is None:
         raise Exception("ctx.guild is None")
-    if ctx.author.id == ctx.guild.owner_id:
-        server: Server = cast(Server, servers.get(ctx.guild))
-        now: datetime = datetime.now(tz=timezone(server.timezone))
-        await ctx.send(f"Current date/time on the server: {now.date()}, {timef(now)}")
-    else:
-        await ctx.send("Only the owner can use this command")
+    server: Server = cast(Server, servers.get(ctx.guild))
+    now: datetime = datetime.now(tz=timezone(server.timezone))
+    await ctx.send(f"It is {now.date()}, {timef(now)}")
 
-# Command reserved for testing purposes
 @bot.command(name="test")
 async def test(ctx: commands.Context) -> None:
-    pass
+    """ Command reserved for testing purposes (v2) """
+    if ctx.guild is None:
+        raise Exception("ctx.guild is None")
+    # if ctx.author.id != ctx.guild.owner_id:
+    await ctx.send("Boi what you tryna test 🫱")
 
-# Handles the actual archiving of general chat
 async def archive_general(guild: discord.Guild, general_cat_name=None, archive_cat_name="Archive", freq=2) -> None:
+    """ Houses the actual logic of archiving general chat (v2) """
     try:
         general_category = discord.utils.get(guild.categories, name=general_cat_name)
         archive_category = discord.utils.get(guild.categories, name="Archive")
@@ -201,26 +217,17 @@ async def archive_general(guild: discord.Guild, general_cat_name=None, archive_c
         raise Exception(str(ex))
 
 async def carry_out_election(ctx: commands.Context, freq: timedelta):
-    """ Handles repeatedly carrying out elections until finished """
+    """ Handles repeatedly sending out election result until finished (v2) """
     if ctx.guild is None:
         raise Exception("ctx.guild is None")
-    global active_role_change
-    active_role_change = True
-    global next_role_change
-    members = list(filter(lambda member: not member.bot, ctx.guild.members))
-    members.remove(cast(discord.Member, discord.utils.get(ctx.guild.members, id=ctx.guild.owner_id)))
-    roles = ["CEO of the Republic", 
-             "Indian of the Republic",
-             "The Softest of the Softest Carries", 
-             "Chinese of the Republic", 
-             "Economist of the Republic", 
-             "Pope of the Republic"]
+    server: Server = cast(Server, servers.get(ctx.guild))
+    roles: list[str] = server.rshuffle
+    members: list[discord.User] = server.ushuffle
     roles_used = []
-    start = datetime.now() - timedelta(hours=5) # set to EST
-    next = (start + freq).time()
-    next_role_change = datetime.strptime(f"{next.hour}:{next.minute}","%H:%M").strftime("%I:%M %p")
-    await ctx.send(f"Role change has begun @everyone. The first role change will be at {next_role_change} EST")
-    while len(members) > 0 and active_role_change:
+    election: Election = Election(server)
+    elections[ctx.guild] = election
+    await ctx.send(f"An election has begun @everyone. The first result will be announced at {timef(election.next_time)}")
+    while len(members) > 0 and elections.get(ctx.guild) is not None:
         await asyncio.sleep(freq.total_seconds())
         member_num = random.randint(0, len(members) - 1)
         role_num = random.randint(0, len(roles_used) - 1) if len(roles) == 0 else random.randint(0, len(roles) - 1)

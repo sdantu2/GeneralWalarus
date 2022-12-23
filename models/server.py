@@ -1,7 +1,7 @@
 from discord import Guild, User
 
 class Server:
-    """ Class that encapsulates a Guild object and additional info about the guild """
+    """ Class that encapsulates a Guild object and additional info about a server """
     def __init__(self, guild: Guild, rshuffle: list[str], ushuffle: list[User]) -> None:
         self.guild: Guild = guild
         """ Guild object associated with this server """

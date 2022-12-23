@@ -1,5 +1,5 @@
-from discord.ext import commands
+from discord.ext.commands import Cog
 
-class ArchiveCog(commands.Cog):
-    """ Class containing commands to archive general chat """
+class ArchiveCog(Cog):
+    """ Class containing commands pertaining to archiving general chat """
     pass
