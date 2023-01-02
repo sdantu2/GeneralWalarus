@@ -1,4 +1,5 @@
 import asyncio
+from copy import deepcopy
 from datetime import datetime, timedelta
 import random
 from typing import cast
@@ -11,6 +12,7 @@ import discord.utils
 from dotenv import load_dotenv
 from models.election import Election
 from models.server import Server
+from models.vc_connection import VCConnection
 import os
 from processes import servers, vc_connections, elections
 from pytz import timezone
@@ -80,7 +82,8 @@ async def test_archive_general(ctx: commands.Context, general_cat_name=None, arc
     if ctx.guild is None: 
         raise Exception("ctx.guild is None")
     if ctx.author.id == ctx.guild.owner_id:
-        await archive_general(ctx.guild, general_cat_name=general_cat_name, archive_cat_name=archive_cat_name, freq=freq)
+        archive_name = db.update_next_archive_date(timedelta(weeks=2))
+        await archive_general(ctx.guild, archive_name, general_cat_name=general_cat_name, archive_cat_name=archive_cat_name)
     else:
         await ctx.send("Only the owner can use this command")
         
@@ -110,6 +113,42 @@ async def log_server_into_database(ctx: commands.Context):
             await ctx.send("Updated this server in database")
     else:
         await ctx.send("Only the owner can use this command")
+
+# @bot.command(name="stalk", aliases=["join", "connect"])
+# async def join_vc(ctx: commands.Context):
+#     try:
+#         author: discord.Member = cast(discord.Member, ctx.author)
+#         if author.voice == None:
+#             await ctx.send("You're not connected to a voice chat")
+#             return
+#         voice_state: discord.VoiceState = author.voice
+#         voice_channel: discord.VoiceChannel = cast(discord.VoiceChannel, voice_state.channel)
+#         voice_client: discord.VoiceClient
+#         try: 
+#             voice_client = await voice_channel.connect()
+#         except: # already connected to a different VC, move them to the author's VC
+#             curr_voice_client: discord.VoiceClient = cast(discord.VoiceClient, discord.utils.get(ctx.bot.voice_clients, guild=ctx.guild))
+#             voice_client = cast(discord.VoiceClient, await curr_voice_client.move_to(voice_channel))
+#         server: Server = servers[cast(discord.Guild, ctx.guild)]
+#         vc_connections[cast(discord.Guild, ctx.guild)] = VCConnection(server, voice_client)
+#         voice_client.start_recording(WaveSink(), once_done, ctx.channel)
+#     except Exception as ex:
+#         print(str(ex))
+        
+# @bot.command(name="stop")
+# async def stop(ctx: commands.Context):
+#     vc_connection: VCConnection = vc_connections[cast(discord.Guild, ctx.guild)]
+#     voice_client: discord.VoiceClient = vc_connection.voice_client
+#     voice_client.stop_recording()
+#     del vc_connection
+#     print("done recording")
+    
+# async def once_done(sink: WaveSink, send_to_channel: discord.TextChannel, *args):
+#     voice_client: discord.VoiceClient = vc_connections[cast(discord.Guild, send_to_channel.guild)].voice_client
+#     sink.write()
+#     await voice_client.disconnect()
+#     files = [discord.File(audio.file, f"{user_id}.{sink.encoding}") for user_id, audio in sink.audio_data.items()]  # List down the files.
+#     await send_to_channel.send("Clipped the last 30 seconds", files=files)  # Send a message with the accumulated files.
 
 # @bot.command(name="join", aliases=["connect", "startstalking"])
 # async def join_vc(ctx: commands.Context):    
@@ -161,12 +200,12 @@ async def next_election_result(ctx: commands.Context):
         raise Exception("ctx.guild is None")
     active_election: Election | None = elections.get(ctx.guild)
     if active_election:
-        await ctx.send(f"The next role change will be at {active_election.next_time}")
+        await ctx.send(f"The next election will be at {active_election.next_time}")
     else:
-        await ctx.send("There is no role change currently active")
+        await ctx.send("There are no elections currently active")
 
 @bot.command(name="election", aliases=["startelection"])
-async def change_roles(ctx: commands.Context, arg="default"):
+async def start_elections(ctx: commands.Context, arg="default"):
     """ Command that initiates an automated election (v2) """
     if ctx.guild is None: 
         raise Exception("ctx.guild is None")
@@ -176,14 +215,13 @@ async def change_roles(ctx: commands.Context, arg="default"):
     election: Election | None = elections.get(ctx.guild)
     if election is not None:
         if str(arg).lower() == "cancel":
-            await ctx.send("Stopping current role change...")
+            await ctx.send("Stopping elections...")
             del elections[ctx.guild]
         else:
-            await ctx.send("A role change is already active")
+            await ctx.send("Elections are already happening")
         return
     server: Server = cast(Server, servers.get(ctx.guild)) 
-    now: datetime = datetime.now(tz=timezone(server.timezone))
-    elections[ctx.guild] = Election(server, now, server.rshuffle, server.ushuffle)
+    elections[ctx.guild] = Election(server)
     await carry_out_election(ctx, timedelta(minutes=server.rc_int))
 
 @bot.command(name="datetime", aliases=["date", "time"])
@@ -203,56 +241,54 @@ async def test(ctx: commands.Context) -> None:
     # if ctx.author.id != ctx.guild.owner_id:
     await ctx.send("Boi what you tryna test 🫱")
 
-async def archive_general(guild: discord.Guild, general_cat_name=None, archive_cat_name="Archive", freq=2) -> None:
+async def archive_general(guild: discord.Guild, archive_name: str, general_cat_name=None, archive_cat_name="Archive") -> None:
     """ Houses the actual logic of archiving general chat (v2) """
     try:
-        general_category = discord.utils.get(guild.categories, name=general_cat_name)
-        archive_category = discord.utils.get(guild.categories, name="Archive")
-        chat_to_archive = discord.utils.get(guild.text_channels, name="general")
-        await cast(discord.TextChannel, chat_to_archive).move(beginning=True, category=archive_category, sync_permissions=True)
-        await cast(discord.TextChannel, chat_to_archive).edit(name=db.get_archived_name())
+        general_category = cast(discord.CategoryChannel, discord.utils.get(guild.categories, name=general_cat_name))
+        archive_category = cast(discord.CategoryChannel, discord.utils.get(guild.categories, name=archive_cat_name))
+        chat_to_archive = cast(discord.TextChannel, discord.utils.get(guild.text_channels, name="general"))
+        await chat_to_archive.move(beginning=True, category=archive_category, sync_permissions=True)
+        await chat_to_archive.edit(name=archive_name)
         new_channel = await guild.create_text_channel("general", category=general_category)
         await new_channel.send("good morning @everyone")   
     except Exception as ex:
-        raise Exception(str(ex))
+        print(str(ex))
 
 async def carry_out_election(ctx: commands.Context, freq: timedelta):
     """ Handles repeatedly sending out election result until finished (v2) """
     if ctx.guild is None:
         raise Exception("ctx.guild is None")
     server: Server = cast(Server, servers.get(ctx.guild))
-    roles: list[str] = server.rshuffle
+    positions: list[str] = server.rshuffle
     members: list[discord.User] = server.ushuffle
-    roles_used = []
+    positions_used = []
     election: Election = Election(server)
     elections[ctx.guild] = election
     await ctx.send(f"An election has begun @everyone. The first result will be announced at {timef(election.next_time)}")
     while len(members) > 0 and elections.get(ctx.guild) is not None:
         await asyncio.sleep(freq.total_seconds())
         member_num = random.randint(0, len(members) - 1)
-        role_num = random.randint(0, len(roles_used) - 1) if len(roles) == 0 else random.randint(0, len(roles) - 1)
+        index = random.randint(0, len(positions_used) - 1) if len(positions) == 0 else random.randint(0, len(positions) - 1)
         chosen_one = members[member_num]
-        chosen_role = roles_used[role_num] if len(roles) == 0 else roles[role_num]
-        await ctx.send(f"Role change announcement @everyone: {chosen_one.name}'s new role will be {chosen_role}")
+        chosen_role = positions_used[index] if len(positions) == 0 else positions[index]
+        await ctx.send(f"New election result @everyone: {chosen_one.name}'s new position will be {chosen_role}")
         next = datetime.now() + freq
-        next_role_change = datetime.strptime(f"{next.hour}:{next.minute}","%H:%M").strftime("%I:%M %p")
-        roles.remove(chosen_role)
-        roles_used.append(chosen_role)
+        positions.remove(chosen_role)
+        positions_used.append(chosen_role)
+        if len(positions) == 0:
+            positions = deepcopy(positions_used)
         members.remove(chosen_one)
-    await ctx.send("Roles have all been reassigned")
-    active_role_change = False
-    next_role_change = None
+    await ctx.send("Election results have been finalized!")
 
 async def repeat_archive(freq: timedelta) -> None:
     """ Handles repeatedly archiving general chat """
     await sleep_until_archive()
     while True:
-        db.update_next_archive_date(freq)
+        archive_name: str = db.update_next_archive_date(freq)
         for guild in bot.guilds:
             now = datetime.now()
             try:
-                await archive_general(guild=guild)
-                discord.utils.get(guild.channels, name=db.get_archived_name())
+                await archive_general(guild=guild, archive_name=archive_name)
                 print(str(now) + f": general archived in '{guild.name}' (id: {guild.id})")
             except Exception as ex:
                 print(str(now) + f": there was an error archiving general in '{guild.name}' (id: {guild.id}): {str(ex)}")

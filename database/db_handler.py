@@ -70,7 +70,7 @@ class DbHandler:
             raise Exception("Couldn't find document")
         return datetime(data["year"], data["month"], data["day"], data["hour"], data["minute"], data["second"])
 
-    def update_next_archive_date(self, archive_freq: timedelta):
+    def update_next_archive_date(self, archive_freq: timedelta) -> str:
         old_date = self.get_next_archive_date()
         new_date: datetime = old_date + archive_freq
         new_date_fields = {
@@ -83,17 +83,13 @@ class DbHandler:
         }
         collection = self.__db.next_archive_date
         collection.update_one({"_id": self.__DATE_ID}, {"$set": new_date_fields}, upsert=True)
+        month = str(new_date.month)
+        day = str(new_date.day)
+        year = str(new_date.year)
+        return "general-" + month + "-" + day + "-" + year[len(year) - 2:]
 
     def log_role_change(self, ctx: commands.Context):
         collection = self.__db.role_changes
-        
-    # Returns the archived name of the archived general chat
-    def get_archived_name(self) -> str:
-        today = date.today()
-        month = str(today.month)
-        day = str(today.day)
-        year = str(today.year)
-        return "general-" + month + "-" + day + "-" + year[len(year) - 2:]
         
 
     
