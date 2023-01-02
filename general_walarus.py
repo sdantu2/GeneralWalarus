@@ -127,9 +127,8 @@ async def next_archive_date_command(ctx: commands.Context) -> None:
 
 @bot.command(name="nextresult", aliases=["nextelectionresult"])
 async def next_election(ctx: commands.Context):
-    time = next_election_result - timedelta(hours=5) # set to EST
     if election_active:
-        await ctx.send(f"The next election result will be announced at {time}")
+        await ctx.send(f"The next election result will be announced at {next_election_result}")
     else:
         await ctx.send("There is no election currently active")
 
@@ -199,7 +198,7 @@ async def carry_out_elections(ctx: commands.Context, freq: timedelta):
         chosen_one = members[member_num]
         chosen_position = positions[index]
         await ctx.send(f"Election result @everyone: {chosen_one.name}'s new position will be {chosen_position}")
-        next = datetime.now() + freq
+        next = datetime.now() + freq - timedelta(hours=5)
         next_election_result = datetime.strptime(f"{next.hour}:{next.minute}","%H:%M").strftime("%I:%M %p")
         await next_election(ctx)
         positions.remove(chosen_position)
