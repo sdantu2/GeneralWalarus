@@ -1,4 +1,5 @@
 import asyncio
+from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 import random
 from db_handler import DbHandler
@@ -17,8 +18,8 @@ load_dotenv()
 bot = commands.Bot(command_prefix="$", intents=intents)
 db = DbHandler(str(os.getenv("DB_CONN_STRING")))
 vc_connections = {}
-active_role_change = False
-next_role_change = None
+election_active = False
+next_election_result = None
 
 # Prints in console when bot is ready to be used
 @bot.event
@@ -124,27 +125,27 @@ async def next_archive_date_command(ctx: commands.Context) -> None:
     else:
         await ctx.send("Only the owner can use this command")
 
-@bot.command(name="nextrolechange", aliases=["nextrolechangetime"])
-async def next_role_change_time(ctx: commands.Context):
-    if active_role_change:
-        await ctx.send(f"The next role change will be at {next_role_change}")
+@bot.command(name="nextresult", aliases=["nextelectionresult"])
+async def next_election_result(ctx: commands.Context):
+    if election_active:
+        await ctx.send(f"The next election result will be announced at {next_election_result}")
     else:
-        await ctx.send("There is no role change currently active")
+        await ctx.send("There is no election currently active")
 
-@bot.command(name="changeroles", aliases=["reorganizeroles", "reorganize"])
-async def change_roles(ctx: commands.Context, arg="default"):
-    global active_role_change
+@bot.command(name="startelection", aliases=["initiateelection", "beginelection"])
+async def start_election(ctx: commands.Context, arg="default"):
+    global election_active
     if ctx.author.id != ctx.guild.owner_id:
         await ctx.send("Only the Supreme Leader can use this command")
         return
-    elif active_role_change:
+    elif election_active:
         if str(arg).lower() == "cancel":
-            await ctx.send("Stopping current role change...")
-            active_role_change = False
+            await ctx.send("Stopping current election...")
+            election_active = False
         else:
-            await ctx.send("A role change is already active")
+            await ctx.send("An election is already active")
         return
-    await carry_out_role_change(ctx, timedelta(minutes=3))
+    await carry_out_elections(ctx, timedelta(minutes=3))
 
 # Get the current time that is being read
 @bot.command(name="time")
@@ -154,13 +155,13 @@ async def time(ctx: commands.Context) -> None:
     else:
         await ctx.send("Only the owner can use this command")
 
-# Command reserved for testing purposes
 @bot.command(name="test")
 async def test(ctx: commands.Context) -> None:
-    pass
+    """Command reserved for testing purposes"""
+    await ctx.send("Boi wat you tryna test 🫱")
 
-# Handles the actual archiving of general chat
 async def archive_general(guild: discord.Guild, general_cat_name=None, archive_cat_name="Archive", freq=2) -> None:
+    """Handles the actual archiving of general chat"""
     try:
         general_category = discord.utils.get(guild.categories, name=general_cat_name)
         archive_category = discord.utils.get(guild.categories, name="Archive")
@@ -172,39 +173,42 @@ async def archive_general(guild: discord.Guild, general_cat_name=None, archive_c
     except Exception as ex:
         raise Exception(str(ex))
 
-#Handles repeatedly carrying out role changes until finished
-async def carry_out_role_change(ctx: commands.Context, freq: timedelta):
-    global active_role_change
-    active_role_change = True
-    global next_role_change
+async def carry_out_elections(ctx: commands.Context, freq: timedelta):
+    """Handles repeatedly carrying out elections until finished"""
+    global election_active
+    election_active = True
+    global next_election_result
     members = list(filter(lambda member: not member.bot, ctx.guild.members))
     members.remove(discord.utils.get(ctx.guild.members, id=ctx.guild.owner_id))
-    roles = ["CEO of the Republic", 
+    positions = ["CEO of the Republic", 
              "Indian of the Republic",
              "The Softest of the Softest Carries", 
              "Chinese of the Republic", 
              "Economist of the Republic", 
              "Pope of the Republic"]
-    roles_used = []
+    positions_assigned = []
     start = datetime.now() - timedelta(hours=5) # set to EST
     next = (start + freq).time()
-    next_role_change = datetime.strptime(f"{next.hour}:{next.minute}","%H:%M").strftime("%I:%M %p")
-    await ctx.send(f"Role change has begun @everyone. The first role change will be at {next_role_change} EST")
-    while len(members) > 0 and active_role_change:
+    next_election_result = datetime.strptime(f"{next.hour}:{next.minute}","%H:%M").strftime("%I:%M %p")
+    await ctx.send(f"Elections have begun @everyone. The first election result will be announced at {next_election_result} EST")
+    while len(members) > 0 and election_active:
         await asyncio.sleep(freq.total_seconds())
         member_num = random.randint(0, len(members) - 1)
-        role_num = random.randint(0, len(roles_used) - 1) if len(roles) == 0 else random.randint(0, len(roles) - 1)
+        index = random.randint(0, len(positions_assigned) - 1) if len(positions) == 0 else random.randint(0, len(positions) - 1)
         chosen_one = members[member_num]
-        chosen_role = roles_used[role_num] if len(roles) == 0 else roles[role_num]
-        await ctx.send(f"Role change announcement @everyone: {chosen_one.name}'s new role will be {chosen_role}")
+        chosen_position = positions[index]
+        await ctx.send(f"Election result @everyone: {chosen_one.name}'s new position will be {chosen_position}")
         next = datetime.now() + freq
-        next_role_change = datetime.strptime(f"{next.hour}:{next.minute}","%H:%M").strftime("%I:%M %p")
-        roles.remove(chosen_role)
-        roles_used.append(chosen_role)
+        next_election_result = datetime.strptime(f"{next.hour}:{next.minute}","%H:%M").strftime("%I:%M %p")
+        await next_election_result(ctx)
+        positions.remove(chosen_position)
+        if len(positions) == 0:
+            positions = deepcopy(positions_assigned)
+        positions_assigned.append(chosen_position)
         members.remove(chosen_one)
-    await ctx.send("Roles have all been reassigned")
-    active_role_change = False
-    next_role_change = None
+    await ctx.send("Election results finalized!")
+    election_active = False
+    next_election_result = None
 
 # Handles repeatedly archiving general chat
 async def repeat_archive(freq: timedelta) -> None:
