@@ -126,7 +126,7 @@ async def next_archive_date_command(ctx: commands.Context) -> None:
         await ctx.send("Only the owner can use this command")
 
 @bot.command(name="nextresult", aliases=["nextelectionresult"])
-async def next_election_result(ctx: commands.Context):
+async def next_election(ctx: commands.Context):
     if election_active:
         await ctx.send(f"The next election result will be announced at {next_election_result}")
     else:
@@ -200,7 +200,7 @@ async def carry_out_elections(ctx: commands.Context, freq: timedelta):
         await ctx.send(f"Election result @everyone: {chosen_one.name}'s new position will be {chosen_position}")
         next = datetime.now() + freq
         next_election_result = datetime.strptime(f"{next.hour}:{next.minute}","%H:%M").strftime("%I:%M %p")
-        await next_election_result(ctx)
+        await next_election(ctx)
         positions.remove(chosen_position)
         if len(positions) == 0:
             positions = deepcopy(positions_assigned)
