@@ -127,8 +127,9 @@ async def next_archive_date_command(ctx: commands.Context) -> None:
 
 @bot.command(name="nextresult", aliases=["nextelectionresult"])
 async def next_election(ctx: commands.Context):
+    time = next_election_result - timedelta(hours=5) # set to EST
     if election_active:
-        await ctx.send(f"The next election result will be announced at {next_election_result}")
+        await ctx.send(f"The next election result will be announced at {time}")
     else:
         await ctx.send("There is no election currently active")
 
