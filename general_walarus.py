@@ -6,25 +6,22 @@ from typing import cast
 import discord
 from discord.ext import commands
 from discord.sinks import WaveSink
-from database.db_handler import DbHandler
+from database.db_handler import *
 from discord.ext import commands
 import discord.utils
-from dotenv import load_dotenv
 from models.election import Election
 from models.server import Server
 from models.vc_connection import VCConnection
-import os
-from processes import servers, vc_connections, elections
+from globals import servers, vc_connections, elections
 from pytz import timezone
-from utilities import timef
+from utilities import timef, now_time
 
+print("general_walarus.py")
 # Setup
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
-load_dotenv()
 bot: discord.Bot = commands.Bot(command_prefix="$", intents=intents) # type: ignore
-db : DbHandler = DbHandler(str(os.getenv("DB_CONN_STRING")))
 
 # Prints in console when bot is ready to be used
 @bot.event
@@ -47,33 +44,30 @@ async def on_message(message: discord.Message) -> None:
     """ Event that runs whenever a user sends something in a text channel (v2) """
     if message.guild is None:
         return
-    db.log_user_stat(message.guild, cast(discord.User, message.author), "sent_messages")
+    log_user_stat(message.guild, cast(discord.User, message.author), "sent_messages")
     for user in message.mentions:
-        db.log_user_stat(message.guild, cast(discord.User, user), "mentioned")
+        log_user_stat(message.guild, cast(discord.User, user), "mentioned")
     await bot.process_commands(message)
 
 @bot.event
 async def on_guild_join(guild: discord.Guild) -> None:
     """ Event that runs whenever General Walarus joins a new server\n 
-        Servers information is added to the database (v2)
-    """
+        Servers information is added to the database (v2) """
     print(f"General Walarus joined guild '{guild.name}' (id: {guild.id})")
-    db.log_server(guild)
+    log_server(guild)
 
 @bot.event
 async def on_guild_remove(guild: discord.Guild) -> None:
     """ Event that runs when General Walarus gets removed from a server.\n
-        Server information is deleted from database (v2)
-    """
+        Server information is deleted from database (v2) """
     print(f"General Walarus has been removed from guild '{guild.name}' (id: {guild.id})")
-    print(f"{db.remove_discord_server(guild)} documents removed from database")
+    print(f"{remove_discord_server(guild)} documents removed from database")
 
 @bot.event
 async def on_guild_update(before: discord.Guild, after: discord.Guild):
     """ Event that runs when a server's information gets updated.\n
-        Server information gets updated in the database (v2)
-    """
-    db.log_server(after)
+        Server information gets updated in the database (v2) """
+    log_server(after)
     print(f"Server {before.id} was updated")
 
 @bot.command(name="archivegeneral", aliases=["archive"])
@@ -82,7 +76,7 @@ async def test_archive_general(ctx: commands.Context, general_cat_name=None, arc
     if ctx.guild is None: 
         raise Exception("ctx.guild is None")
     if ctx.author.id == ctx.guild.owner_id:
-        archive_name = db.update_next_archive_date(timedelta(weeks=2))
+        archive_name = update_next_archive_date(timedelta(weeks=2))
         await archive_general(ctx.guild, archive_name, general_cat_name=general_cat_name, archive_cat_name=archive_cat_name)
     else:
         await ctx.send("Only the owner can use this command")
@@ -106,7 +100,7 @@ async def log_server_into_database(ctx: commands.Context):
     if ctx.guild is None: 
         raise Exception("ctx.guild is None")
     if ctx.author.id == ctx.guild.owner_id:
-        created_new = db.log_server(ctx.guild)
+        created_new = log_server(ctx.guild)
         if created_new:
             await ctx.send("Logged this server into the database") 
         else: 
@@ -188,10 +182,11 @@ async def log_server_into_database(ctx: commands.Context):
         
 @bot.command(name="nextarchivedate", aliases=["nextarchive"])
 async def next_archive_date_command(ctx: commands.Context) -> None:
-    """ Command that sends the date of the next general chat archive. Assumes global archive date (v2) """
+    """ Command that sends the date of the next general chat archive. 
+        Assumes global archive date (v2) """
     if ctx.guild is None: 
         raise Exception("ctx.guild is None")
-    await ctx.send("Next archive date: " + str(db.get_next_archive_date()))
+    await ctx.send("Next archive date: " + str(get_next_archive_date()))
 
 @bot.command(name="nextresult", aliases=["nextelectionresult"])
 async def next_election_result(ctx: commands.Context):
@@ -230,7 +225,7 @@ async def time(ctx: commands.Context) -> None:
     if ctx.guild is None:
         raise Exception("ctx.guild is None")
     server: Server = cast(Server, servers.get(ctx.guild))
-    now: datetime = datetime.now(tz=timezone(server.timezone))
+    now: datetime = now_time(server)
     await ctx.send(f"It is {now.date()}, {timef(now)}")
 
 @bot.command(name="test")
@@ -284,7 +279,7 @@ async def repeat_archive(freq: timedelta) -> None:
     """ Handles repeatedly archiving general chat """
     await sleep_until_archive()
     while True:
-        archive_name: str = db.update_next_archive_date(freq)
+        archive_name: str = update_next_archive_date(freq)
         for guild in bot.guilds:
             now = datetime.now()
             try:
@@ -297,7 +292,7 @@ async def repeat_archive(freq: timedelta) -> None:
 async def sleep_until_archive() -> None:
     """ Handles waiting for the next archive date """
     now = datetime.now()
-    then = db.get_next_archive_date()
+    then = get_next_archive_date()
     wait_time = (then - now).total_seconds()
     await asyncio.sleep(wait_time)
 
