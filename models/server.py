@@ -4,7 +4,7 @@ class Server:
     """ Class that encapsulates a Guild object and additional info about a server """
     def __init__(self, guild: Guild, rshuffle: list[str], ushuffle: list[User]) -> None:
         self.guild: Guild = guild
-        """ Guild object associated with this server """
+        """ Pycord Guild object associated with this server """
         self.rshuffle: list[str] = rshuffle
         """ String list of roles involved in role change """
         self.ushuffle: list[User] = ushuffle

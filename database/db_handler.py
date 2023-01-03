@@ -5,7 +5,6 @@ from discord.ext import commands
 import os
 from pymongo import MongoClient
 
-print("db_handler.py")
 CONNECTION_STRING: str = str(os.getenv("DB_CONN_STRING"))
 db = MongoClient(CONNECTION_STRING).general_walarus
 log = lambda discord_server, collection, data: collection.update_one({"_id": discord_server.id}, {"$set": data}, upsert = True).upserted_id != None
