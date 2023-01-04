@@ -1,6 +1,4 @@
-from models.vc_connection import VCConnection
-from models.election import Election
-from models.server import Server
+from models import VCConnection, Election, Server
 from discord import Guild
 
 servers: dict[Guild, Server] = {}
