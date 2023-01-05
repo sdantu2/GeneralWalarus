@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 import discord
 from discord.ext.commands import Cog
 from discord.ext import commands
@@ -7,6 +8,7 @@ from datetime import timedelta
 from typing import cast
 from models import Server
 from globals import servers
+from utilities import now_time, make_offset_aware
 
 class EventsCog(Cog, name="Events"):
     """ Class containing implementations for Discord bot events """
@@ -34,9 +36,9 @@ class EventsCog(Cog, name="Events"):
         """ Event that runs whenever a user sends something in a text channel (v2) """
         if message.guild is None:
             return
-        db.log_user_stat(message.guild, cast(discord.User, message.author), "sent_messages")
+        db.inc_user_stat(message.guild, cast(discord.User, message.author), "sent_messages")
         for user in message.mentions:
-            db.log_user_stat(message.guild, cast(discord.User, user), "mentioned")
+            db.inc_user_stat(message.guild, cast(discord.User, user), "mentioned")
  
     @commands.Cog.listener()
     async def on_guild_join(self, guild: discord.Guild) -> None:
@@ -61,5 +63,21 @@ class EventsCog(Cog, name="Events"):
         
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, ex: commands.CommandError):
+        """ Event that runs when a user tries a command and it raises an error """
         if type(ex) == commands.CommandNotFound:
             await ctx.send("That ain't a command my brother in Christ")
+
+    @commands.Cog.listener()
+    async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+        """ Event that runs when a user changes voice state (join/leaves VC, gets muted/unmuted, 
+            gets deafened/undeafened, etc.) """
+        guild: discord.Guild = member.guild
+        now: datetime = datetime.now()
+        if before.channel == None and after.channel != None:
+            db.update_user_stats(guild, member, last_connected_to_vc=now, connected_to_vc=True)
+        elif before.channel != None and after.channel == None:
+            field_name: str = "last_connected_to_vc"
+            connected_time: datetime = cast(dict, db.get_user_stats(guild, member.id, field_name))[field_name]
+            session_length: int = (now - connected_time).seconds
+            db.inc_user_stat(guild, member, "time_in_vc", session_length)
+            db.update_user_stats(guild, member, connected_to_vc=False)
