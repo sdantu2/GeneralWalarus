@@ -32,7 +32,8 @@ async def on_ready() -> None:
 async def on_message(message: discord.Message) -> None:
     db.inc_user_stat(message.guild, message.author, "sent_messages")
     for user in message.mentions:
-        db.inc_user_stat(message.guild, user, "mentioned")
+        if user.id != message.author.id:
+            db.inc_user_stat(message.guild, user, "mentioned")
     await bot.process_commands(message)
 
 @bot.event
@@ -57,8 +58,10 @@ async def on_voice_state_update(member: discord.Member, before: discord.VoiceSta
     guild: discord.Guild = member.guild
     now: datetime = datetime.now()
     if before.channel == None and after.channel != None:
+        """ user joined voice channel """
         db.update_user_stats(guild, member, last_connected_to_vc=now, connected_to_vc=True)
     elif before.channel != None and after.channel == None:
+        """ user left voice channel """
         field_name: str = "last_connected_to_vc"
         connected_time: datetime = cast(dict, db.get_user_stats(guild, member.id, field_name))[field_name]
         session_length: int = (now - connected_time).seconds
