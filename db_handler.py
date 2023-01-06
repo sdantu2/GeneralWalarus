@@ -93,7 +93,7 @@ class DbHandler:
         year = str(today.year)
         return "general-" + month + "-" + day + "-" + year[len(year) - 2:]
 
-    def update_user_stats(self, discord_server: discord.Guild, user: discord.User | discord.Member, **kwargs) -> bool:
+    def update_user_stats(self, discord_server: discord.Guild, user, **kwargs) -> bool:
         user_stats = self.__db.user_stats
         set_fields: dict = { "server_name": discord_server.name, "user_name": user.name }
         set_fields.update(**kwargs)
