@@ -14,12 +14,12 @@ class DbHandler:
         self.__log = lambda discord_server, collection, data: collection.update_one({"_id": discord_server.id}, {"$set": data}, upsert = True).upserted_id != None
         self.__DATE_ID = ObjectId("62df0eeb1f3ca1fa0645aef0")
     
-    def log_user_stat(self, discord_server: discord.Guild, user: discord.User, target_stat: str, inc = 1) -> bool:
+    def inc_user_stat(self, discord_server: discord.Guild, user: discord.User, field: str, inc = 1) -> bool:
         user_stats = self.__db.user_stats
-        stats = ["mentioned", "sent_messages", "vc_time"]
+        stats = ["mentioned", "sent_messages", "time_in_vc"]
         stats_data = {}
         for stat in stats:
-            if stat == target_stat:
+            if stat == field:
                 stats_data[stat] = inc
             else:
                 stats_data[stat] = 0
@@ -92,6 +92,33 @@ class DbHandler:
         day = str(today.day)
         year = str(today.year)
         return "general-" + month + "-" + day + "-" + year[len(year) - 2:]
+
+    def update_user_stats(self, discord_server: discord.Guild, user: discord.User | discord.Member, **kwargs) -> bool:
+        user_stats = self.__db.user_stats
+        set_fields: dict = { "server_name": discord_server.name, "user_name": user.name }
+        set_fields.update(**kwargs)
+        return user_stats.update_one({
+                                        "_id": {
+                                            "server_id": discord_server.id, 
+                                            "user_id": user.id
+                                        }
+                                    }, 
+                                    {
+                                        "$set": set_fields
+                                    }, 
+                                    upsert = True).upserted_id != None
+
+    def get_user_stats(self, discord_server: discord.Guild, user_id: int, *fields):
+        user_stats = self.__db.user_stats
+        projection: dict = {}
+        for field in fields:
+            projection[field] = 1
+        return user_stats.find_one({
+                                        "_id": {
+                                            "server_id": discord_server.id, 
+                                            "user_id": user_id
+                                        }
+                                    }, projection)
         
 
     

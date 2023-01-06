@@ -9,6 +9,7 @@ from discord.sinks import WaveSink
 from dotenv import load_dotenv
 import json
 import os
+from typing import cast
 
 # Setup
 intents = discord.Intents.default()
@@ -29,9 +30,9 @@ async def on_ready() -> None:
     
 @bot.event
 async def on_message(message: discord.Message) -> None:
-    db.log_user_stat(message.guild, message.author, "sent_messages")
+    db.inc_user_stat(message.guild, message.author, "sent_messages")
     for user in message.mentions:
-        db.log_user_stat(message.guild, user, "mentioned")
+        db.inc_user_stat(message.guild, user, "mentioned")
     await bot.process_commands(message)
 
 @bot.event
@@ -48,6 +49,21 @@ async def on_guild_remove(guild: discord.Guild) -> None:
 async def on_guild_update(before: discord.Guild, after: discord.Guild):
     db.log_server(after)
     print('Server {} was updated'.format(before.id))
+
+@bot.event
+async def on_voice_state_update(member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+    """ Event that runs when a user changes voice state (join/leaves VC, gets muted/unmuted, 
+        gets deafened/undeafened, etc.) """
+    guild: discord.Guild = member.guild
+    now: datetime = datetime.now()
+    if before.channel == None and after.channel != None:
+        db.update_user_stats(guild, member, last_connected_to_vc=now, connected_to_vc=True)
+    elif before.channel != None and after.channel == None:
+        field_name: str = "last_connected_to_vc"
+        connected_time: datetime = cast(dict, db.get_user_stats(guild, member.id, field_name))[field_name]
+        session_length: int = (now - connected_time).seconds
+        db.inc_user_stat(guild, member, "time_in_vc", session_length)
+        db.update_user_stats(guild, member, connected_to_vc=False)
 
 # Command to manually run archive function for testing purposes
 @bot.command(name="archivegeneral", aliases=["archive"])
