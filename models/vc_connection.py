@@ -5,6 +5,7 @@ from utilities import now_time, timef
 
 class VCConnection:
     """ Class that encapsulates information about active voice channel connections """
+    
     def __init__(self, server: Server, voice_client: VoiceClient) -> None:
         self.server: Server = server
         """Server that voice connection associated with"""

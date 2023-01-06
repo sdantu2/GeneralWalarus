@@ -8,7 +8,6 @@ from datetime import timedelta
 from typing import cast
 from models import Server
 from globals import servers
-from utilities import now_time, make_offset_aware
 
 class EventsCog(Cog, name="Events"):
     """ Class containing implementations for Discord bot events """

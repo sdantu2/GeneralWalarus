@@ -1,11 +1,11 @@
 from datetime import datetime, timedelta
 import discord
-from pytz import timezone
 from utilities import timef, now_time
 from models.server import Server
 
 class Election:
     """ Class that encapsulates election info per guild """
+
     def __init__(self, server: Server) -> None:
         self.server: Server = server
         """ Server that election is occurring in """
