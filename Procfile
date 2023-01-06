@@ -1,1 +1,0 @@
-worker: python general_walarus.py
