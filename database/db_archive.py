@@ -21,7 +21,7 @@ def update_next_archive_date(archive_freq: timedelta) -> str:
     }
     collection = db.next_archive_date
     collection.update_one({"_id": DATE_ID}, {"$set": new_date_fields}, upsert=True)
-    month = str(new_date.month)
-    day = str(new_date.day)
-    year = str(new_date.year)
+    month = str(old_date.month)
+    day = str(old_date.day)
+    year = str(old_date.year)
     return "general-" + month + "-" + day + "-" + year[len(year) - 2:]
