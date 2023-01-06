@@ -38,7 +38,8 @@ class EventsCog(Cog, name="Events"):
             return
         db.inc_user_stat(message.guild, cast(discord.User, message.author), "sent_messages")
         for user in message.mentions:
-            db.inc_user_stat(message.guild, cast(discord.User, user), "mentioned")
+            if user.id != message.author.id:
+                db.inc_user_stat(message.guild, cast(discord.User, user), "mentioned")
  
     @commands.Cog.listener()
     async def on_guild_join(self, guild: discord.Guild) -> None:
