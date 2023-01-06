@@ -25,7 +25,7 @@ def inc_user_stat(discord_server: discord.Guild, user, field: str, inc = 1) -> b
                                 }, 
                                 upsert = True).upserted_id != None
 
-def update_user_stats(discord_server: discord.Guild, user: discord.User | discord.Member, **kwargs) -> bool:
+def update_user_stats(discord_server: discord.Guild, user, **kwargs) -> bool:
     user_stats = db.user_stats
     set_fields: dict = { "server_name": discord_server.name, "user_name": user.name }
     set_fields.update(**kwargs)
