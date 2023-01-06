@@ -1,7 +1,7 @@
 import discord
 from .db_globals import *
 
-def inc_user_stat(discord_server: discord.Guild, user: discord.User | discord.Member, field: str, inc = 1) -> bool:
+def inc_user_stat(discord_server: discord.Guild, user, field: str, inc = 1) -> bool:
     user_stats = db.user_stats
     stats = ["mentioned", "sent_messages", "time_in_vc"]
     stats_data = {}
