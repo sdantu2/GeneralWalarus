@@ -1,0 +1,13 @@
+New features to implement:
+- shell feature to process commands when running bot
+- voice channel clipping
+- web app for bot
+    - dashboard to display user stats
+    - page to set options specific to server
+      - roles to include in elections
+      - name of chat to archive 
+      - how often to archive
+      - name of archive category
+      - toggling automated role change for elections
+- casino
+- GUI within Discord for certain commands (especially for $help)
