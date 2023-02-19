@@ -30,7 +30,10 @@ class StatisticsCog(Cog, name="Statistics"):
             if guild != None:
                 query = cast(dict, db.get_user_stats(guild, user.id, "sent_messages"))
                 messages = int(query["sent_messages"])
-                await ctx.send(f"You've sent {messages:,} messages")
+                if user.id == ctx.author.id:
+                    await ctx.send(f"You've sent {messages:,} messages")
+                else:
+                    await ctx.send(f"{user.name} has sent {messages:,} messages")
         except Exception as e:
             print(str(e))
             await ctx.send("I pooped my pants...try again")
