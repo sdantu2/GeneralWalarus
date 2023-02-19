@@ -8,7 +8,7 @@ class StatisticsCog(Cog, name="Statistics"):
     """ Class containing General Walarus' statistics commands """
     
     @commands.command(name="messages", aliases=["mymessages"])
-    async def messages(self, ctx: commands.Context, user: discord.User | None = None) -> None:
+    async def messages(self, ctx: commands.Context, user: discord.User = None) -> None:
         """ Command that sends back how many messages user has sent (v2) """
         try:
             guild = ctx.guild
@@ -23,7 +23,7 @@ class StatisticsCog(Cog, name="Statistics"):
             
         
     @commands.command(name="vctime", aliases=["timeinvc"])
-    async def vctime(self, ctx: commands.Context, user: discord.User | None = None) -> None:
+    async def vctime(self, ctx: commands.Context, user: discord.User = None) -> None:
         """ Command that sends back how much time user has spent in VC (v2) """
         try:
             guild = ctx.guild
@@ -41,7 +41,7 @@ class StatisticsCog(Cog, name="Statistics"):
                     days: "days" if days > 1 else "day",
                     hours: "hours" if hours > 1 else "hour",
                     minutes: "minutes" if minutes > 1 else "minute",
-                    seconds: "seconds" if seconds > 1 else "second"
+                    seconds: "seconds" if seconds > 1 or seconds == 0 else "second"
                 }
                 msg = f"You've spent" if user.id == ctx.author.id else f"{user.name} has spent"
                 if days > 0:
