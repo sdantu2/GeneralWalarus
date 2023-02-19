@@ -6,6 +6,7 @@ import discord.utils
 import database as db
 from datetime import timedelta, datetime
 from typing import cast
+from utilities import printlog
 
 class ArchiveCog(Cog, name="Archive"):
     """ Class containing commands pertaining to archiving general chat """
@@ -43,7 +44,7 @@ class ArchiveCog(Cog, name="Archive"):
             new_channel = await guild.create_text_channel("general", category=general_category)
             await new_channel.send("good morning @everyone")   
         except Exception as ex:
-            print(str(ex))
+            printlog(str(ex))
             
     async def repeat_archive(self, freq: timedelta) -> None:
         """ Handles repeatedly archiving general chat """
@@ -54,9 +55,9 @@ class ArchiveCog(Cog, name="Archive"):
                 now = datetime.now()
                 try:
                     await self.archive_general(guild=guild, archive_name=archive_name)
-                    print(str(now) + f": general archived in '{guild.name}' (id: {guild.id})")
+                    printlog(str(now) + f": general archived in '{guild.name}' (id: {guild.id})")
                 except Exception as ex:
-                    print(str(now) + f": there was an error archiving general in '{guild.name}' (id: {guild.id}): {str(ex)}")
+                    printlog(str(now) + f": there was an error archiving general in '{guild.name}' (id: {guild.id}): {str(ex)}")
             await self.sleep_until_archive()
 
     async def sleep_until_archive(self) -> None:

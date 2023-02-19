@@ -16,3 +16,6 @@ class Server:
         """ Role change interval (in minutes) """
         self.timezone: str = "US/Eastern"
         """ Timezone of server """
+        
+    def __str__(self) -> str:
+        return f"{self.guild.name}: {self.guild.member_count} members"

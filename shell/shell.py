@@ -1,4 +1,5 @@
-# from globals import servers, vc_connections, elections
+from globals import servers, vc_connections, elections
+import os
     
 class _Command:
     """ A class that represents a Walarus Shell command """
@@ -6,18 +7,42 @@ class _Command:
         self.name = name
         self.description = description
         self.run = fn        
+
+def show_globals() -> None:
+    print(f"servers:")
+    for server in servers.values():
+        print("\t" + str(server))
+    print(f"vc_connections:")
+    for guild, conn in vc_connections.items():
+        print(f"\tConnected to {conn.voice_client.channel} in {guild.name}")
+    print(f"elections:")
+    for guild in vc_connections.keys():
+        print(f"\tActive election in {guild.name}")
+
+def exit_walarus() -> None:
+    try:
+        os._exit(0)
+    except Exception as ex:
+        print(str(ex))
     
 def help() -> None:
     for value in cmd_map.values():
         print(f"\t'{value.name}' --> {value.description}")
     
+    
 cmd_map: dict = {
-    "help": _Command("help", "List out all the Walarus Shell commands", help)
+    "exit": _Command("exit", "Close shell and terminate General Walarus", exit_walarus),
+    "globals": _Command("globals", "Display current value of global variables", show_globals),
+    "help": _Command("help", "List out all the Walarus Shell commands", help),
 }    
 
 def run_walarus_shell():
     while True:
         command: str = input("8==D ")
-        cmd_map[command].run()
-
-run_walarus_shell()
+        try:
+            if cmd_map.get(command) is not None:
+                cmd_map[command].run()
+            else:
+                print("Invalid command")
+        except Exception as ex:
+            print(str(ex))
