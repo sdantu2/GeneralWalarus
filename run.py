@@ -4,8 +4,8 @@ import os
 import discord
 from discord.ext import commands
 import discord.utils
-from cogs import ArchiveCog, ElectionCog, EventsCog, MiscellaneousCog
-import shell as sh
+from cogs import ArchiveCog, ElectionCog, EventsCog, MiscellaneousCog, StatisticsCog
+# import shell as sh
 
 def main():    
     """ Setup General Walarus and run """
@@ -17,8 +17,10 @@ def main():
     bot.add_cog(ArchiveCog(bot))
     bot.add_cog(ElectionCog())
     bot.add_cog(MiscellaneousCog())
+    bot.add_cog(StatisticsCog())
     bot.run(os.getenv("BOT_TOKEN"))
-    sh.run_walarus_shell()
+    print("bruh")
+    # sh.run_walarus_shell()
 
 if __name__ == "__main__":
     main()
