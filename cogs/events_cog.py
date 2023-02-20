@@ -19,15 +19,8 @@ class EventsCog(Cog, name="Events"):
     @commands.Cog.listener()
     async def on_ready(self) -> None:
         """ Event that runs once General Walarus is up and running (v2) """
-        rshuffle: list[str] = ["CEO of the Republic", 
-                "Indian of the Republic",
-                "The Softest of the Softest Carries", 
-                "Chinese of the Republic", 
-                "Economist of the Republic", 
-                "Pope of the Republic"]
-        ushuffle: list[discord.User] = []
         for guild in self.bot.guilds:
-            servers[guild] = Server(guild, rshuffle, ushuffle)
+            servers[guild] = Server(guild)
         print(f"General Walarus active in {len(servers)} server(s)")
         start_mutex.release()
         await self.bot.get_cog("Archive").repeat_archive(timedelta(weeks=2)) # type: ignore
@@ -47,7 +40,7 @@ class EventsCog(Cog, name="Events"):
         """ Event that runs whenever General Walarus joins a new server\n 
             Servers information is added to the database (v2) """
         printlog(f"General Walarus joined guild '{guild.name}' (id: {guild.id})")
-        servers[guild] = Server(guild, [], [])
+        servers[guild] = Server(guild)
         db.log_server(guild)
 
     @commands.Cog.listener()

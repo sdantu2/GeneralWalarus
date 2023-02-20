@@ -11,13 +11,13 @@ class _Command:
 def show_globals() -> None:
     print(f"servers:")
     for server in servers.values():
-        print("\t" + str(server))
+        print(f"\t{str(server)}")
     print(f"vc_connections:")
     for guild, conn in vc_connections.items():
-        print(f"\tConnected to {conn.voice_client.channel} in {guild.name}")
+        print(f"\tConnected to '{conn.voice_client.channel}' in '{guild.name}'")
     print(f"elections:")
-    for guild in vc_connections.keys():
-        print(f"\tActive election in {guild.name}")
+    for guild in elections.keys():
+        print(f"\tActive election in '{guild.name}'")
 
 def exit_walarus() -> None:
     try:
