@@ -3,6 +3,7 @@ from discord.ext.commands import Cog
 from discord.ext import commands
 import database as db
 from typing import cast
+from utilities import printlog
 
 class _TimeSpan():
     def __init__(self, seconds: int):
@@ -22,7 +23,7 @@ class StatisticsCog(Cog, name="Statistics"):
     """ Class containing General Walarus' statistics commands """
     
     @commands.command(name="messages", aliases=["mymessages"])
-    async def messages(self, ctx: commands.Context, user: discord.User = None) -> None:
+    async def messages(self, ctx: commands.Context, user: discord.User = None) -> None: #type: ignore
         """ Command that sends back how many messages user has sent (v2) """
         try:
             guild = ctx.guild
@@ -35,12 +36,12 @@ class StatisticsCog(Cog, name="Statistics"):
                 else:
                     await ctx.send(f"{user.name} has sent {messages:,} messages")
         except Exception as e:
-            print(str(e))
+            printlog(str(e))
             await ctx.send("I pooped my pants...try again")
             
         
     @commands.command(name="vctime", aliases=["timeinvc"])
-    async def vctime(self, ctx: commands.Context, user: discord.User = None) -> None:
+    async def vctime(self, ctx: commands.Context, user: discord.User = None) -> None: #type: ignore
         """ Command that sends back how much time user has spent in VC (v2) """
         try:
             guild = ctx.guild
@@ -65,6 +66,6 @@ class StatisticsCog(Cog, name="Statistics"):
                     msg += f" {time.seconds} {time.seconds_unit} in voice channel"
                 await ctx.send(msg)
         except Exception as e:
-            print(str(e))
+            printlog(str(e))
             await ctx.send("I pooped my pants...try again")
 

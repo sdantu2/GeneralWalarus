@@ -2,6 +2,11 @@ from datetime import datetime
 from models.server import Server
 from pytz import timezone
 
+def printlog(message: str) -> None:
+    log_file = open("log", "a")
+    log_file.write(message + "\n")
+    log_file.close()
+    
 def timef(dt: datetime) -> str:
     """ Format time of given datetime (ex. 02:47 PM CST) """
     return dt.strftime("%I:%M %p %Z")

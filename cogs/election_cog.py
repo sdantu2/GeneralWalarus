@@ -50,10 +50,9 @@ class ElectionCog(Cog, name="Election"):
             raise Exception("ctx.guild is None")
         server: Server = cast(Server, servers.get(ctx.guild))
         positions: list[str] = server.rshuffle
-        members: list[discord.User] = server.ushuffle
+        members: list[str] = server.ushuffle
         positions_used = []
-        election: Election = Election(server)
-        elections[ctx.guild] = election
+        election: Election = elections[ctx.guild]
         await ctx.send(f"An election has begun @everyone. The first result will be announced at {timef(election.next_time)}")
         while len(members) > 0 and elections.get(ctx.guild) is not None:
             await asyncio.sleep(freq.total_seconds())
@@ -61,7 +60,7 @@ class ElectionCog(Cog, name="Election"):
             index = random.randint(0, len(positions_used) - 1) if len(positions) == 0 else random.randint(0, len(positions) - 1)
             chosen_one = members[member_num]
             chosen_role = positions_used[index] if len(positions) == 0 else positions[index]
-            await ctx.send(f"New election result @everyone: {chosen_one.name}'s new position will be {chosen_role}")
+            await ctx.send(f"New election result @everyone: {chosen_one}'s new position will be {chosen_role}")
             next = datetime.now() + freq
             positions.remove(chosen_role)
             positions_used.append(chosen_role)
@@ -69,3 +68,4 @@ class ElectionCog(Cog, name="Election"):
                 positions = deepcopy(positions_used)
             members.remove(chosen_one)
         await ctx.send("Election results have been finalized!")
+        del elections[ctx.guild]
