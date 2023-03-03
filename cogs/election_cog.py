@@ -49,8 +49,8 @@ class ElectionCog(Cog, name="Election"):
         if ctx.guild is None:
             raise Exception("ctx.guild is None")
         server: Server = cast(Server, servers.get(ctx.guild))
-        positions: list[str] = server.rshuffle
-        members: list[str] = server.ushuffle
+        positions: list[str] = deepcopy(server.rshuffle)
+        members: list[str] = deepcopy(server.ushuffle)
         positions_used = []
         election: Election = elections[ctx.guild]
         await ctx.send(f"An election has begun @everyone. The first result will be announced at {timef(election.next_time)}")
