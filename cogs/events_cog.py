@@ -71,10 +71,31 @@ class EventsCog(Cog, name="Events"):
         guild: discord.Guild = member.guild
         now: datetime = datetime.now()
         if before.channel == None and after.channel != None:
+            # user joins a voice channel
             db.update_user_stats(guild, member, last_connected_to_vc=now, connected_to_vc=True)
+            vc_members: list = after.channel.members
+            non_bot_count: int = 0
+            for vc_member in vc_members:
+                if not vc_member.bot:
+                    non_bot_count += 1
+            vc_timer: bool = non_bot_count > 1
+            for vc_member in vc_members:
+                print(f"{member.name} joined, updated {vc_member.name} vc_timer to {vc_timer}")
+                db.update_user_stats(guild, vc_member, vc_timer=vc_timer)    
         elif before.channel != None and after.channel == None:
+            # user leaves a voice channel
             field_name: str = "last_connected_to_vc"
-            connected_time: datetime = cast(dict, db.get_user_stats(guild, member.id, field_name))[field_name]
+            connected_time: datetime = cast(dict, db.get_user_stat(guild, member.id, field_name))[field_name]
             session_length: int = (now - connected_time).seconds
-            db.inc_user_stat(guild, member, "time_in_vc", session_length)
-            db.update_user_stats(guild, member, connected_to_vc=False)
+            vc_members: list = before.channel.members
+            vc_timer: bool = cast(dict, db.get_user_stat(guild, member.id, "vc_timer"))["vc_timer"]
+            if len(vc_members) == 1: # just one more person left in voice channel
+                # stop everyone's vc timer and update time in db
+                for vc_member in vc_members:
+                    print(f"updating {vc_member.name}'s time_in_vc by {session_length}")
+                    db.inc_user_stat(guild, vc_member, "time_in_vc", session_length)
+                    db.update_user_stats(guild, vc_member, vc_timer=False)
+                db.inc_user_stat(guild, member, "time_in_vc", session_length)
+            elif vc_timer: # just stop the timer of the person who's leaving
+                db.inc_user_stat(guild, member, "time_in_vc", session_length)
+            db.update_user_stats(guild, member, connected_to_vc=False, vc_timer=False)
