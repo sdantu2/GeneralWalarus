@@ -1,5 +1,5 @@
 New features to implement:
-- shell feature to process commands when running bot
+- shell feature to process commands when running bot (done)
 - voice channel clipping
 - web app for bot
     - dashboard to display user stats

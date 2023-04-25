@@ -40,7 +40,7 @@ def update_user_stats(discord_server: discord.Guild, user, **kwargs) -> bool:
                                 }, 
                                 upsert = True).upserted_id != None
 
-def get_user_stats(discord_server: discord.Guild, user_id: int, *fields):
+def get_user_stat(discord_server: discord.Guild, user_id: int, *fields):
     user_stats = db.user_stats
     projection: dict = {}
     for field in fields:
@@ -51,3 +51,26 @@ def get_user_stats(discord_server: discord.Guild, user_id: int, *fields):
                                         "user_id": user_id
                                     }
                                 }, projection)
+
+def get_user_stats(discord_server: discord.Guild):
+    user_stats = db.user_stats
+    query_result = user_stats.find({
+        "_id": {
+            "server_id": discord_server.id,
+            "user_id": {
+                "$ne": -1
+            }
+        }
+    })
+    print(list(query_result))
+    ret = []
+    for user in list(query_result):
+        print("user: " + user)
+        # ret.append({
+        #     "user_name": user["user_name"],
+        #     "mentioned": user["mentioned"],
+        #     "sent_messages": user["sent_messages"],
+        #     "time_in_vc": user["time_in_vc"],
+        # })
+    print(ret)
+    return ret

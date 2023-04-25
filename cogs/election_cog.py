@@ -15,7 +15,7 @@ class ElectionCog(Cog, name="Election"):
     
     @commands.command(name="nextresult", aliases=["nextelectionresult"])
     async def next_election_result(self, ctx: commands.Context):
-        """ Command that sends the time of the next election result (v2) """
+        """ Command that sends the time of the next election result """
         if not ctx.guild:
             raise Exception("ctx.guild is None")
         active_election: Election | None = elections.get(ctx.guild)
@@ -26,7 +26,7 @@ class ElectionCog(Cog, name="Election"):
 
     @commands.command(name="election", aliases=["startelection"])
     async def start_elections(self, ctx: commands.Context, arg="default"):
-        """ Command that initiates an automated election (v2) """
+        """ Command that initiates an automated election """
         if ctx.guild is None: 
             raise Exception("ctx.guild is None")
         if ctx.author.id != ctx.guild.owner_id:
@@ -45,7 +45,7 @@ class ElectionCog(Cog, name="Election"):
         await self.carry_out_election(ctx, timedelta(minutes=server.rc_int))
         
     async def carry_out_election(self, ctx: commands.Context, freq: timedelta):
-        """ Handles repeatedly sending out election result until finished (v2) """
+        """ Handles repeatedly sending out election result until finished """
         if ctx.guild is None:
             raise Exception("ctx.guild is None")
         server: Server = cast(Server, servers.get(ctx.guild))

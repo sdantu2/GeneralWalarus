@@ -24,12 +24,12 @@ class StatisticsCog(Cog, name="Statistics"):
     
     @commands.command(name="messages", aliases=["mymessages"])
     async def messages(self, ctx: commands.Context, user: discord.User = None) -> None: #type: ignore
-        """ Command that sends back how many messages user has sent (v2) """
+        """ Command that sends back how many messages user has sent """
         try:
             guild = ctx.guild
             user = cast(discord.User, ctx.author) if user is None else user
             if guild != None:
-                query = cast(dict, db.get_user_stats(guild, user.id, "sent_messages"))
+                query = cast(dict, db.get_user_stat(guild, user.id, "sent_messages"))
                 messages = int(query["sent_messages"])
                 if user.id == ctx.author.id:
                     await ctx.send(f"You've sent {messages:,} messages")
@@ -42,12 +42,12 @@ class StatisticsCog(Cog, name="Statistics"):
         
     @commands.command(name="vctime", aliases=["timeinvc"])
     async def vctime(self, ctx: commands.Context, user: discord.User = None) -> None: #type: ignore
-        """ Command that sends back how much time user has spent in VC (v2) """
+        """ Command that sends back how much time user has spent in voice channel """
         try:
             guild = ctx.guild
             user = cast(discord.User, ctx.author) if user is None else user 
             if guild != None:
-                query = cast(dict, db.get_user_stats(guild, user.id, "time_in_vc"))
+                query = cast(dict, db.get_user_stat(guild, user.id, "time_in_vc"))
                 seconds = int(query["time_in_vc"])
                 time: _TimeSpan = _TimeSpan(seconds)
                 msg = f"You've spent" if user.id == ctx.author.id else f"{user.name} has spent"
@@ -68,4 +68,22 @@ class StatisticsCog(Cog, name="Statistics"):
         except Exception as e:
             printlog(str(e))
             await ctx.send("I pooped my pants...try again")
+            
+    # @commands.command(name="showstats", aliases=["leaderboard"])
+    # async def show_stats(self, ctx: commands.Context):
+    #     if ctx.guild == None:
+    #         await ctx.send("Aw poop nuggets, I sharted myself...")
+    #         return
+    #     print("made it here")
+    #     leaderboard = db.get_user_stats(ctx.guild)
+    #     print(leaderboard)
+    #     print(len(leaderboard))
+    #     for user in leaderboard:
+    #         print("user_name: " + user["user_name"])
+    #         print("mentioned: " + user["mentioned"])
+    #         print("sent_messages: " + user["sent_messages"])
+    #         print("time_in_vc: " + user["time_in_vc"])
+    #         print()
+        
+        
 

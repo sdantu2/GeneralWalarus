@@ -16,7 +16,7 @@ class ArchiveCog(Cog, name="Archive"):
    
     @commands.command(name="archivegeneral", aliases=["archive"])
     async def test_archive_general(self, ctx: commands.Context, general_cat_name=None, archive_cat_name="Archive", freq=2) -> None:
-        """ Command that manually runs archive function for testing purposes (v2) """
+        """ Command that manually runs archive function for testing purposes """
         if ctx.guild is None: 
             raise Exception("ctx.guild is None")
         if ctx.author.id == ctx.guild.owner_id:
@@ -28,13 +28,13 @@ class ArchiveCog(Cog, name="Archive"):
     @commands.command(name="nextarchivedate", aliases=["nextarchive"])
     async def next_archive_date_command(self, ctx: commands.Context) -> None:
         """ Command that sends the date of the next general chat archive. 
-            Assumes global archive date (v2) """
+            Assumes global archive date """
         if ctx.guild is None: 
             raise Exception("ctx.guild is None")
         await ctx.send("Next archive date: " + str(db.get_next_archive_date()))
         
     async def archive_general(self, guild: discord.Guild, archive_name: str, general_cat_name=None, archive_cat_name="Archive") -> None:
-        """ Houses the actual logic of archiving general chat (v2) """
+        """ Houses the actual logic of archiving general chat """
         try:
             general_category = cast(discord.CategoryChannel, discord.utils.get(guild.categories, name=general_cat_name))
             archive_category = cast(discord.CategoryChannel, discord.utils.get(guild.categories, name=archive_cat_name))
