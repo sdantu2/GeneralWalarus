@@ -2,7 +2,7 @@ import discord
 from .db_globals import *
 from datetime import datetime
 
-def inc_user_stat(discord_server: discord.Guild, user: discord.User | discord.Member, field: str, inc = 1) -> bool:
+def inc_user_stat(discord_server: discord.Guild, user, field: str, inc = 1) -> bool:
     user_stats = db.user_stats
     stats = ["mentioned", "sent_messages", "time_in_vc"]
     stats_data = {}
@@ -67,7 +67,7 @@ def get_user_stats(discord_server: discord.Guild):
     }, projection)
     return list(users)
 
-def create_user(discord_server: discord.Guild, user: discord.User | discord.Member) -> bool:
+def create_user(discord_server: discord.Guild, user) -> bool:
     user_stats = db.user_stats
     find = user_stats.find_one({ "_id": { "server_id": discord_server.id, "user_id": user.id } })
     if find != None:
