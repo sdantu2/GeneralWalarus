@@ -1,7 +1,8 @@
 import discord
 from .db_globals import *
+from datetime import datetime
 
-def inc_user_stat(discord_server: discord.Guild, user, field: str, inc = 1) -> bool:
+def inc_user_stat(discord_server: discord.Guild, user: discord.User | discord.Member, field: str, inc = 1) -> bool:
     user_stats = db.user_stats
     stats = ["mentioned", "sent_messages", "time_in_vc"]
     stats_data = {}
@@ -54,23 +55,39 @@ def get_user_stat(discord_server: discord.Guild, user_id: int, *fields):
 
 def get_user_stats(discord_server: discord.Guild):
     user_stats = db.user_stats
-    query_result = user_stats.find({
-        "_id": {
-            "server_id": discord_server.id,
-            "user_id": {
-                "$ne": -1
-            }
-        }
-    })
-    print(list(query_result))
-    ret = []
-    for user in list(query_result):
-        print("user: " + user)
-        # ret.append({
-        #     "user_name": user["user_name"],
-        #     "mentioned": user["mentioned"],
-        #     "sent_messages": user["sent_messages"],
-        #     "time_in_vc": user["time_in_vc"],
-        # })
-    print(ret)
-    return ret
+    projection = {
+        "_id": 0,
+        "user_name": 1,
+        "mentioned": 1,
+        "sent_messages": 1,
+        "time_in_vc": 1
+    }
+    users = user_stats.find({
+        "_id.server_id": discord_server.id
+    }, projection)
+    return list(users)
+
+def create_user(discord_server: discord.Guild, user: discord.User | discord.Member) -> bool:
+    user_stats = db.user_stats
+    find = user_stats.find_one({ "_id": { "server_id": discord_server.id, "user_id": user.id } })
+    if find != None:
+        return False
+    return user_stats.update_one({
+                                    "_id": {
+                                        "server_id": discord_server.id,
+                                        "user_id": user.id
+                                    }   
+                                 },
+                                 {
+                                    "$set": {
+                                        "mentioned": 0,
+                                        "sent_messages": 0,
+                                        "server_name": discord_server.name,
+                                        "time_in_vc": 0,
+                                        "user_name": user.name,
+                                        "vc_timer": False,
+                                        "connected_to_vc": False,
+                                        "last_connected_to_vc": datetime.min,
+                                        "bot": user.bot
+                                    }
+                                 }, upsert=True).upserted_id != None

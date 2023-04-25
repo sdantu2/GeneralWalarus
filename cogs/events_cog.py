@@ -57,6 +57,11 @@ class EventsCog(Cog, name="Events"):
             Server information gets updated in the database """
         db.log_server(after)
         printlog(f"Server {before.id} was updated")
+
+    @commands.Cog.listener()
+    async def on_member_join(self, member: discord.Member) -> None:
+        """ Event that runs when a user joins a guild """
+        db.create_user(member.guild, member)
         
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, ex: commands.CommandError):
