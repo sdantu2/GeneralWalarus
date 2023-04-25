@@ -29,11 +29,10 @@ def _member_name(member: discord.Member) -> str:
     return member.name
 
 def remove_discord_server(discord_server: discord.Guild) -> int:
-    """Remove the given server from all relevant collections, returns the number of documenets deleted"""
+    """ Remove the given server from all relevant collections, returns the number of documents deleted """
     connected_servers = db.connected_servers
     user_stats = db.user_stats
     total = connected_servers.delete_many({"_id": discord_server.id}).deleted_count
-    # total += user_stats.delete_many({"_id.server_id": discord_server.id}).deleted_count
     return total
 
 def get_rshuffle(guild: discord.Guild) -> list[str]:
@@ -42,7 +41,7 @@ def get_rshuffle(guild: discord.Guild) -> list[str]:
                                             "name": guild.name
                                        },
                                        {
-                                           "rshuffle": 1
+                                            "rshuffle": 1
                                        })
     query_dict: dict = cast(dict, query)
     return [] if query_dict.get("rshuffle") == None else query_dict["rshuffle"]

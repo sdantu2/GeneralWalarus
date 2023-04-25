@@ -18,7 +18,7 @@ class EventsCog(Cog, name="Events"):
         
     @commands.Cog.listener()
     async def on_ready(self) -> None:
-        """ Event that runs once General Walarus is up and running (v2) """
+        """ Event that runs once General Walarus is up and running """
         for guild in self.bot.guilds:
             servers[guild] = Server(guild)
         print(f"General Walarus active in {len(servers)} server(s)")
@@ -27,7 +27,7 @@ class EventsCog(Cog, name="Events"):
         
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:
-        """ Event that runs whenever a user sends something in a text channel (v2) """
+        """ Event that runs whenever a user sends something in a text channel """
         if message.guild is None:
             return
         db.inc_user_stat(message.guild, cast(discord.User, message.author), "sent_messages")
@@ -38,7 +38,7 @@ class EventsCog(Cog, name="Events"):
     @commands.Cog.listener()
     async def on_guild_join(self, guild: discord.Guild) -> None:
         """ Event that runs whenever General Walarus joins a new server\n 
-            Servers information is added to the database (v2) """
+            Servers information is added to the database """
         printlog(f"General Walarus joined guild '{guild.name}' (id: {guild.id})")
         servers[guild] = Server(guild)
         db.log_server(guild)
@@ -46,7 +46,7 @@ class EventsCog(Cog, name="Events"):
     @commands.Cog.listener()
     async def on_guild_remove(self, guild: discord.Guild) -> None:
         """ Event that runs when General Walarus gets removed from a server.\n
-            Server information is deleted from database (v2) """
+            Server information is deleted from database """
         del servers[guild]
         printlog(f"General Walarus has been removed from guild '{guild.name}' (id: {guild.id})")
         printlog(f"{db.remove_discord_server(guild)} documents removed from database")
@@ -54,7 +54,7 @@ class EventsCog(Cog, name="Events"):
     @commands.Cog.listener()
     async def on_guild_update(self, before: discord.Guild, after: discord.Guild):
         """ Event that runs when a server's information gets updated.\n
-            Server information gets updated in the database (v2) """
+            Server information gets updated in the database """
         db.log_server(after)
         printlog(f"Server {before.id} was updated")
         

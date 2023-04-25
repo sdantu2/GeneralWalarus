@@ -12,12 +12,12 @@ class MiscellaneousCog(Cog, name="Miscellaneous"):
     
     @commands.command(name="bruh")
     async def bruh(self, ctx: commands.Context) -> None:
-        """ Stupid command that just has General Walarus send 'bruh' (v2) """
+        """ Stupid command that just has General Walarus send 'bruh' """
         await ctx.send("bruh")
         
     @commands.command(name="echo", aliases=["say"])
     async def echo(self, ctx: commands.Context, *words) -> None:
-        """ Command that has General Walarus repeat back command args (v2) """
+        """ Command that has General Walarus repeat back command args """
         message = ""
         for word in words:
             message += word + " "
@@ -25,7 +25,7 @@ class MiscellaneousCog(Cog, name="Miscellaneous"):
         
     @commands.command(name="intodatabase", aliases=["intodb"])
     async def log_server_into_database(self, ctx: commands.Context):
-        """ Command to manually log a server into the database (v2) """
+        """ Command to manually log a server into the database """
         if ctx.guild is None: 
             raise Exception("ctx.guild is None")
         if ctx.author.id == ctx.guild.owner_id:
@@ -39,7 +39,7 @@ class MiscellaneousCog(Cog, name="Miscellaneous"):
             
     @commands.command(name="datetime", aliases=["date", "time"])
     async def time(self, ctx: commands.Context) -> None:
-        """ Get the current datetime in the timezone of the given server (v2) """
+        """ Get the current datetime in the timezone of the given server """
         if ctx.guild is None:
             raise Exception("ctx.guild is None")
         server: Server = cast(Server, servers.get(ctx.guild))
@@ -48,7 +48,7 @@ class MiscellaneousCog(Cog, name="Miscellaneous"):
 
     @commands.command(name="test")
     async def test(self, ctx: commands.Context) -> None:
-        """ Command reserved for testing purposes (v2) """
+        """ Command reserved for testing purposes """
         if ctx.guild is None:
             raise Exception("ctx.guild is None")
         # if ctx.author.id != ctx.guild.owner_id:
