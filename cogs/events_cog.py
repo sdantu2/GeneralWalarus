@@ -80,7 +80,6 @@ class EventsCog(Cog, name="Events"):
                     non_bot_count += 1
             vc_timer: bool = non_bot_count > 1
             for vc_member in vc_members:
-                print(f"{member.name} joined, updated {vc_member.name} vc_timer to {vc_timer}")
                 db.update_user_stats(guild, vc_member, vc_timer=vc_timer)    
         elif before.channel != None and after.channel == None:
             # user leaves a voice channel
@@ -92,7 +91,6 @@ class EventsCog(Cog, name="Events"):
             if len(vc_members) == 1: # just one more person left in voice channel
                 # stop everyone's vc timer and update time in db
                 for vc_member in vc_members:
-                    print(f"updating {vc_member.name}'s time_in_vc by {session_length}")
                     db.inc_user_stat(guild, vc_member, "time_in_vc", session_length)
                     db.update_user_stats(guild, vc_member, vc_timer=False)
                 db.inc_user_stat(guild, member, "time_in_vc", session_length)
