@@ -10,8 +10,8 @@ import shell as sh
 from threading import Thread
 
 def run_bot(bot: discord.Bot):
-    # bot.run(os.getenv("BOT_TOKEN"))
-    bot.run(os.getenv("DEV_BOT_TOKEN"))
+    bot.run(os.getenv("BOT_TOKEN"))
+    # bot.run(os.getenv("DEV_BOT_TOKEN"))
 
 def main():    
     """ Setup General Walarus and run """

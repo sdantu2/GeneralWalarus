@@ -69,21 +69,26 @@ class StatisticsCog(Cog, name="Statistics"):
             printlog(str(e))
             await ctx.send("I pooped my pants...try again")
             
-    # @commands.command(name="showstats", aliases=["leaderboard"])
-    # async def show_stats(self, ctx: commands.Context):
-    #     if ctx.guild == None:
-    #         await ctx.send("Aw poop nuggets, I sharted myself...")
-    #         return
-    #     print("made it here")
-    #     leaderboard = db.get_user_stats(ctx.guild)
-    #     print(leaderboard)
-    #     print(len(leaderboard))
-    #     for user in leaderboard:
-    #         print("user_name: " + user["user_name"])
-    #         print("mentioned: " + user["mentioned"])
-    #         print("sent_messages: " + user["sent_messages"])
-    #         print("time_in_vc: " + user["time_in_vc"])
-    #         print()
-        
-        
-
+    @commands.command(name="showstats", aliases=["leaderboard"])
+    async def show_stats(self, ctx: commands.Context):
+        if ctx.guild == None:
+            await ctx.send("Aw poop nuggets, I sharted myself...")
+            return
+        leaderboard: list = db.get_user_stats(ctx.guild)
+        leaderboard.sort(key=lambda user: user["sent_messages"] + user["time_in_vc"], reverse=True)
+        message = "```\n"
+        for user in leaderboard:
+            username = user["user_name"]
+            mentioned = user["mentioned"]
+            mentioned_units = "time" if mentioned == 1 else "times"
+            sent_messages = user["sent_messages"]
+            messages_unit = "message" if sent_messages == 1 else "messages"
+            vctime = _TimeSpan(user["time_in_vc"])
+            message += f"{username}\n"
+            message += f"\tMentioned: {mentioned} {mentioned_units}\n"
+            message += f"\tMessages sent: {sent_messages} {messages_unit}\n"
+            message += (f"\tTime in VC: {vctime.days} {vctime.days_unit}, {vctime.hours} "
+                        f"{vctime.hours_unit}, {vctime.minutes} {vctime.minutes_unit}, "
+                        f"{vctime.seconds} {vctime.seconds_unit}\n")
+        message += "```"
+        await ctx.send(message)
