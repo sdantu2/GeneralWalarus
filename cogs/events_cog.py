@@ -96,9 +96,10 @@ class EventsCog(Cog, name="Events"):
             if len(vc_members) == 1: # just one more person left in voice channel
                 # stop everyone's vc timer and update time in db
                 for vc_member in vc_members:
-                    db.inc_user_stat(guild, vc_member, "time_in_vc", session_length)
-                    db.update_user_stats(guild, vc_member, vc_timer=False)
-                db.inc_user_stat(guild, member, "time_in_vc", session_length)
-            elif vc_timer: # just stop the timer of the person who's leaving
+                    update_time: bool = cast(dict, db.get_user_stat(guild, vc_member.id, "vc_timer"))["vc_timer"]
+                    if update_time:
+                        db.inc_user_stat(guild, vc_member, "time_in_vc", session_length)
+                        db.update_user_stats(guild, vc_member, vc_timer=False)
+            if vc_timer: # update time of the person who's leaving
                 db.inc_user_stat(guild, member, "time_in_vc", session_length)
             db.update_user_stats(guild, member, connected_to_vc=False, vc_timer=False)

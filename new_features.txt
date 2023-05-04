@@ -11,3 +11,4 @@ New features to implement:
       - toggling automated role change for elections
 - casino
 - GUI within Discord for certain commands (especially for $help)
+- chatbot command w/ ChatGPT
