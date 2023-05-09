@@ -15,7 +15,9 @@ class EventsCog(Cog, name="Events"):
     
     def __init__(self, bot: discord.Bot):
         self.bot = bot
-        
+
+    #region Events
+
     @commands.Cog.listener()
     async def on_ready(self) -> None:
         """ Event that runs once General Walarus is up and running """
@@ -74,6 +76,14 @@ class EventsCog(Cog, name="Events"):
         """ Event that runs when a user changes voice state (join/leaves VC, gets muted/unmuted, 
             gets deafened/undeafened, etc.) """
         guild: discord.Guild = member.guild
+        self.db_update_voice(member, guild, before, after)
+        
+    #endregion
+    
+    #region Helper Functions
+    
+    def db_update_voice(self, member: discord.Member, guild: discord.Guild, before: discord.VoiceState, after: discord.VoiceState) -> None:
+        """ Analyzes before and after voice state and updates user voice status in database """
         now: datetime = datetime.now()
         if before.channel == None and after.channel != None:
             # user joins a voice channel
@@ -103,3 +113,5 @@ class EventsCog(Cog, name="Events"):
             if vc_timer: # update time of the person who's leaving
                 db.inc_user_stat(guild, member, "time_in_vc", session_length)
             db.update_user_stats(guild, member, connected_to_vc=False, vc_timer=False)
+    
+    #endregion
