@@ -10,6 +10,8 @@ from typing import cast
 class MiscellaneousCog(Cog, name="Miscellaneous"):
     """ Class containing General Walarus' miscellaneous commands """
     
+    #region Commands
+    
     @commands.command(name="bruh")
     async def bruh(self, ctx: commands.Context) -> None:
         """ Stupid command that just has General Walarus send 'bruh' """
@@ -53,3 +55,5 @@ class MiscellaneousCog(Cog, name="Miscellaneous"):
             raise Exception("ctx.guild is None")
         # if ctx.author.id != ctx.guild.owner_id:
         await ctx.send("Boi wat you tryna test 🫱")
+    
+    #endregion

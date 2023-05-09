@@ -22,6 +22,8 @@ class _TimeSpan():
 class StatisticsCog(Cog, name="Statistics"):
     """ Class containing General Walarus' statistics commands """
     
+    #region Commands
+    
     @commands.command(name="messages", aliases=["mymessages"])
     async def messages(self, ctx: commands.Context, user: discord.User = None) -> None: #type: ignore
         """ Command that sends back how many messages user has sent """
@@ -92,3 +94,5 @@ class StatisticsCog(Cog, name="Statistics"):
                         f"{vctime.seconds} {vctime.seconds_unit}\n")
         message += "```"
         await ctx.send(message)
+    
+    #endregion 

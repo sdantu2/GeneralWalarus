@@ -1,5 +1,4 @@
 New features to implement:
-- shell feature to process commands when running bot (done)
 - voice channel clipping
 - web app for bot
     - dashboard to display user stats
@@ -12,3 +11,4 @@ New features to implement:
 - casino
 - GUI within Discord for certain commands (especially for $help)
 - chatbot command w/ ChatGPT
+- add to message event that parses image with valorant game results

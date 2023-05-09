@@ -13,7 +13,9 @@ class ArchiveCog(Cog, name="Archive"):
    
     def __init__(self, bot: discord.Bot) -> None:
         self.bot = bot
-   
+    
+    #region Commands
+    
     @commands.command(name="archivegeneral", aliases=["archive"])
     async def test_archive_general(self, ctx: commands.Context, general_cat_name=None, archive_cat_name="Archive", freq=2) -> None:
         """ Command that manually runs archive function for testing purposes """
@@ -32,6 +34,10 @@ class ArchiveCog(Cog, name="Archive"):
         if ctx.guild is None: 
             raise Exception("ctx.guild is None")
         await ctx.send("Next archive date: " + str(db.get_next_archive_date()))
+        
+    #endregion
+    
+    #region Helper Functions
         
     async def archive_general(self, guild: discord.Guild, archive_name: str, general_cat_name=None, archive_cat_name="Archive") -> None:
         """ Houses the actual logic of archiving general chat """
@@ -66,3 +72,5 @@ class ArchiveCog(Cog, name="Archive"):
         then = db.get_next_archive_date()
         wait_time = (then - now).total_seconds()
         await asyncio.sleep(wait_time)
+        
+    #endregion

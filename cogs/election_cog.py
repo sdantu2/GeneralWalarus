@@ -13,6 +13,8 @@ from utilities import timef
 class ElectionCog(Cog, name="Election"):
     """ Class containing commands pertaining to elections """
     
+    #region Commands
+    
     @commands.command(name="nextresult", aliases=["nextelectionresult"])
     async def next_election_result(self, ctx: commands.Context):
         """ Command that sends the time of the next election result """
@@ -44,6 +46,10 @@ class ElectionCog(Cog, name="Election"):
         elections[ctx.guild] = Election(server)
         await self.carry_out_election(ctx, timedelta(minutes=server.rc_int))
         
+    #endregion
+    
+    #region Helper Functions
+        
     async def carry_out_election(self, ctx: commands.Context, freq: timedelta):
         """ Handles repeatedly sending out election result until finished """
         if ctx.guild is None:
@@ -69,3 +75,5 @@ class ElectionCog(Cog, name="Election"):
             members.remove(chosen_one)
         await ctx.send("Election results have been finalized!")
         del elections[ctx.guild]
+    
+    #endregion
