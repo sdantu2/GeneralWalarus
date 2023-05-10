@@ -25,5 +25,5 @@ def make_offset_aware(server: Server, dt: datetime) -> datetime:
 def get_server_prefix() -> str:
     """ Returns the given server's command prefix from DB 
     (this is just a placeholder for now) """
-    result = "!"
+    result = "$"
     return result
