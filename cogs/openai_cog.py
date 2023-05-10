@@ -18,16 +18,26 @@ class OpenAICog(Cog, name="OpenAI"):
     @commands.command(name="gpt", aliases=["ai", "chatgpt"])
     async def chat_gpt(self, ctx: commands.Context, *message_input) -> None:
         """ Command to chat with ChatGPT """
-        waiting_msg = await ctx.send("ChatGPT is thinking...")
-        try:
-            messages = []
-            messages.append({ "role": "user", "content": " ".join(message_input) })
-            chat = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages)
-            await waiting_msg.delete()
-            await ctx.send(f"ChatGPT says: ```{chat.choices[0].message.content}```") #type: ignore    
-        except Exception as e:
-            printlog(str(e))
-            await waiting_msg.delete()
+        WAITING_MSG = await ctx.send("ChatGPT is thinking...")
+        MAX_TRIES = 3;
+        try_count = 0
+        success = False
+        
+        while (try_count < MAX_TRIES):
+            try:
+                messages = []
+                messages.append({ "role": "user", "content": " ".join(message_input) })
+                chat = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages)
+                success = True
+                break  
+            except Exception as e:
+                try_count += 1
+                printlog(f"gpt command failed (try_count: {try_count})")
+        await WAITING_MSG.delete()
+        
+        if success:
+            await ctx.send(f"ChatGPT says: ```{chat.choices[0].message.content}```") #type: ignore  
+        else:
             await ctx.send("ChatGPT died trying to talk to you...")
     
     #endregion 
