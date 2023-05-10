@@ -2,22 +2,9 @@ import discord
 from discord.ext.commands import Cog
 from discord.ext import commands
 import database as db
+from models import TimeSpan
 from typing import cast
 from utilities import printlog
-
-class _TimeSpan():
-    def __init__(self, seconds: int):
-        self.days = seconds // 86400
-        self.days_unit = "day" if self.days == 1 else "days"
-        seconds -= self.days * 86400
-        self.hours = seconds // 3600
-        self.hours_unit = "hour" if self.hours == 1 else "hours"
-        seconds -= self.hours * 3600
-        self.minutes = seconds // 60
-        self.minutes_unit = "minute" if self.minutes == 1 else "minutes"
-        seconds -= self.minutes * 60
-        self.seconds = seconds
-        self.seconds_unit = "second" if self.seconds == 1 else "seconds"
         
 class StatisticsCog(Cog, name="Statistics"):
     """ Class containing General Walarus' statistics commands """
@@ -51,21 +38,21 @@ class StatisticsCog(Cog, name="Statistics"):
             if guild != None:
                 query = cast(dict, db.get_user_stat(guild, user.id, "time_in_vc"))
                 seconds = int(query["time_in_vc"])
-                time: _TimeSpan = _TimeSpan(seconds)
+                time: TimeSpan = TimeSpan(seconds)
                 msg = f"You've spent" if user.id == ctx.author.id else f"{user.name} has spent"
-                if time.days > 0:
-                    msg += (f" {time.days} {time.days_unit}, {time.hours} {time.hours_unit}, "
-                            f"{time.minutes} {time.minutes_unit}, and {time.seconds} "
-                            f"{time.seconds_unit} in voice channel")
-                elif time.hours > 0:
-                    msg += (f" {time.hours} {time.hours_unit}, {time.minutes} "
-                            f"{time.minutes_unit}, and {time.seconds} "
-                            f"{time.seconds_unit} in voice channel")
-                elif time.minutes > 0:
-                    msg += (f" {time.minutes} {time.minutes_unit}, and {time.seconds} "
-                            f"{time.seconds_unit} in voice channel")
+                if time.days() > 0:
+                    msg += (f" {time.days()} {time.days_unit()}, {time.hours()} {time.hours_unit()}, "
+                            f"{time.minutes()} {time.minutes_unit()}, and {time.seconds()} "
+                            f"{time.seconds_unit()} in voice channel")
+                elif time.hours() > 0:
+                    msg += (f" {time.hours()} {time.hours_unit()}, {time.minutes()} "
+                            f"{time.minutes_unit()}, and {time.seconds()} "
+                            f"{time.seconds_unit()} in voice channel")
+                elif time.minutes() > 0:
+                    msg += (f" {time.minutes()} {time.minutes_unit()}, and {time.seconds()} "
+                            f"{time.seconds_unit()} in voice channel")
                 else:
-                    msg += f" {time.seconds} {time.seconds_unit} in voice channel"
+                    msg += f" {time.seconds()} {time.seconds_unit()} in voice channel"
                 await ctx.send(msg)
         except Exception as e:
             printlog(str(e))
@@ -77,7 +64,8 @@ class StatisticsCog(Cog, name="Statistics"):
             await ctx.send("Aw poop nuggets, I sharted myself...")
             return
         leaderboard: list = db.get_user_stats(ctx.guild)
-        leaderboard.sort(key=lambda user: user["sent_messages"] + user["time_in_vc"], reverse=True)
+        sort_key = lambda user: user["sent_messages"] + user["time_in_vc"] + user["mentioned"]
+        leaderboard.sort(key=sort_key, reverse=True)
         message = "```\n"
         for user in leaderboard:
             username = user["user_name"]
@@ -85,13 +73,13 @@ class StatisticsCog(Cog, name="Statistics"):
             mentioned_units = "time" if mentioned == 1 else "times"
             sent_messages = user["sent_messages"]
             messages_unit = "message" if sent_messages == 1 else "messages"
-            vctime = _TimeSpan(user["time_in_vc"])
+            vctime = TimeSpan(user["time_in_vc"])
             message += f"{username}\n"
             message += f"\tMentioned: {mentioned} {mentioned_units}\n"
             message += f"\tMessages sent: {sent_messages} {messages_unit}\n"
-            message += (f"\tTime in VC: {vctime.days} {vctime.days_unit}, {vctime.hours} "
-                        f"{vctime.hours_unit}, {vctime.minutes} {vctime.minutes_unit}, "
-                        f"{vctime.seconds} {vctime.seconds_unit}\n")
+            message += (f"\tTime in VC: {vctime.days()} {vctime.days_unit()}, {vctime.hours()} "
+                        f"{vctime.hours_unit()}, {vctime.minutes()} {vctime.minutes_unit()}, "
+                        f"{vctime.seconds()} {vctime.seconds_unit()}\n")
         message += "```"
         await ctx.send(message)
     
