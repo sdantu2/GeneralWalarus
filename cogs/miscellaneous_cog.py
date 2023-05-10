@@ -3,7 +3,7 @@ from discord.ext import commands
 import database as db
 from datetime import datetime
 from globals import servers
-from models import Server
+from models import Server, TimeSpan
 from utilities import now_time, timef
 from typing import cast
 
@@ -56,4 +56,41 @@ class MiscellaneousCog(Cog, name="Miscellaneous"):
         # if ctx.author.id != ctx.guild.owner_id:
         await ctx.send("Boi wat you tryna test 🫱")
     
+    @commands.command(name="anjayunban")
+    async def anjay_unban(self, ctx: commands.Context) -> None:
+        now: datetime = datetime.now()
+        datetime_unbanned: datetime = datetime(year=2023, month=6, day=4)
+        sec_until: int = (datetime_unbanned - now).total_seconds().__floor__()
+
+        print(datetime_unbanned)
+        print(now)
+
+        if sec_until <= 0:
+            await ctx.send("Anjay has been unbanned")
+            return
+
+        time_until: TimeSpan = TimeSpan(sec_until)
+        
+        if time_until.days() > 0:
+            await ctx.send(
+                (f"Anjay will be unbanned in {time_until.days()} {time_until.days_unit()}, "
+                 f"{time_until.hours()} {time_until.hours_unit()}, {time_until.minutes()} "
+                 f"{time_until.minutes_unit()}, {time_until.seconds()} {time_until.seconds_unit()}")
+            )
+        elif time_until.hours() > 0:
+            await ctx.send(
+                (f"Anjay will be unbanned in {time_until.hours()} {time_until.hours_unit()}, "
+                 f"{time_until.minutes()} {time_until.minutes_unit()}, {time_until.seconds()} "
+                 f"{time_until.seconds_unit()}")
+            )
+        elif time_until.minutes() > 0:
+            await ctx.send(
+                (f"Anjay will be unbanned in {time_until.minutes()} {time_until.minutes_unit()}, "
+                 f"{time_until.seconds()} {time_until.seconds_unit()}")
+            )
+        else:
+            await ctx.send(
+                (f"Anjay will be unbanned in {time_until.seconds()} {time_until.seconds_unit()}")
+            )
+
     #endregion
