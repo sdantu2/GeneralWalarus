@@ -62,9 +62,6 @@ class MiscellaneousCog(Cog, name="Miscellaneous"):
         datetime_unbanned: datetime = datetime(year=2023, month=6, day=4, hour=9, minute=8)
         sec_until: int = (datetime_unbanned - now).total_seconds().__floor__()
 
-        print(datetime_unbanned)
-        print(now)
-
         if sec_until <= 0:
             await ctx.send("Anjay has been unbanned")
             return
