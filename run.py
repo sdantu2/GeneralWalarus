@@ -13,7 +13,6 @@ from utilities import get_server_prefix
 
 def run_bot(bot: discord.Bot):
     bot.run(os.getenv("BOT_TOKEN"))
-    # bot.run(os.getenv("DEV_BOT_TOKEN"))
 
 def main():    
     """ Setup bot intents and cogs and bring General Walarus to life """
