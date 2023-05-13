@@ -1,5 +1,6 @@
 from datetime import datetime
 from models.server import Server
+import os
 from pytz import timezone
 
 def printlog(message: str) -> None:
@@ -25,5 +26,5 @@ def make_offset_aware(server: Server, dt: datetime) -> datetime:
 def get_server_prefix() -> str:
     """ Returns the given server's command prefix from DB 
     (this is just a placeholder for now) """
-    result = "$"
-    return result
+    result = os.getenv("CMD_PREFIX")
+    return str(result)
