@@ -60,7 +60,7 @@ class MiscellaneousCog(Cog, name="Miscellaneous"):
     @commands.command(name="anjayunban")
     async def anjay_unban(self, ctx: commands.Context) -> None:
         eastern = timezone("US/Eastern")
-        now: datetime = eastern.localize(datetime.now())
+        now: datetime = datetime.now(tz=eastern)
         datetime_unbanned: datetime = eastern.localize(
             datetime(year=2023, month=6, day=4, hour=21, minute=8)
         )
