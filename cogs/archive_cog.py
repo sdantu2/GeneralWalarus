@@ -5,6 +5,7 @@ from discord.ext import commands
 import discord.utils
 import database as db
 from datetime import timedelta, datetime
+from pytz import timezone
 from typing import cast
 from utilities import printlog
 
@@ -34,7 +35,15 @@ class ArchiveCog(Cog, name="Archive"):
             Assumes global archive date """
         if ctx.guild is None: 
             raise Exception("ctx.guild is None")
-        await ctx.send("Next archive date: " + str(db.get_next_archive_date()))
+        eastern = timezone("US/Eastern")
+        date = db.get_next_archive_date()
+        hour = date.hour % 12
+        if date.hour == 12 or date.hour == 0:
+            hour = "12"
+        meridiem = "AM" if date.hour < 12 else "PM"
+        dt_str = (f"{date.month}/{date.day}/{date.year} {hour}:{date.minute:<02} "
+                  f"{meridiem} EST")
+        await ctx.send(f"Next archive date: {dt_str}")
         
     #endregion
     
@@ -81,7 +90,7 @@ class ArchiveCog(Cog, name="Archive"):
 
     async def sleep_until_archive(self) -> None:
         """ Handles waiting for the next archive date """
-        now = datetime.now()
+        now = datetime.now(tz=timezone("US/Eastern"))
         then = db.get_next_archive_date()
         wait_time = (then - now).total_seconds()
         await asyncio.sleep(wait_time)

@@ -1,12 +1,17 @@
 from datetime import datetime, timedelta
 from .db_globals import *
+from pytz import timezone
 
 def get_next_archive_date() -> datetime:
     collection = db.next_archive_date
     data = collection.find_one({"_id": DATE_ID}, {"_id": 0})
     if data is None:
         raise Exception("Couldn't find document")
-    return datetime(data["year"], data["month"], data["day"], data["hour"], data["minute"], data["second"])
+    eastern = timezone("US/Eastern") 
+    next_archive_date = eastern.localize(
+        datetime(data["year"], data["month"], data["day"], data["hour"], data["minute"], data["second"])
+    )
+    return next_archive_date
 
 def update_next_archive_date(name: str, archive_freq: timedelta, update_db=True) -> str:
     old_date = get_next_archive_date()
