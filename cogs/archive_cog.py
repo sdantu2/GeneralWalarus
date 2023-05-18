@@ -17,13 +17,14 @@ class ArchiveCog(Cog, name="Archive"):
     #region Commands
     
     @commands.command(name="archivegeneral", aliases=["archive"])
-    async def test_archive_general(self, ctx: commands.Context, general_cat_name=None, archive_cat_name="Archive", freq=2) -> None:
+    async def test_archive_general(self, ctx: commands.Context, name="general", 
+                                   archive_cat_name="Archive", freq=2) -> None:
         """ Command that manually runs archive function for testing purposes """
         if ctx.guild is None: 
             raise Exception("ctx.guild is None")
         if ctx.author.id == ctx.guild.owner_id:
-            archive_name = db.update_next_archive_date(timedelta(weeks=2))
-            await self.archive_general(ctx.guild, archive_name, general_cat_name=general_cat_name, archive_cat_name=archive_cat_name)
+            new_name = db.update_next_archive_date(name, timedelta(weeks=freq), False)
+            await self.archive_general(ctx.guild, name, new_name, archive_cat_name)
         else:
             await ctx.send("Only the owner can use this command")
             
@@ -39,16 +40,28 @@ class ArchiveCog(Cog, name="Archive"):
     
     #region Helper Functions
         
-    async def archive_general(self, guild: discord.Guild, archive_name: str, general_cat_name=None, archive_cat_name="Archive") -> None:
+    async def archive_general(self, guild: discord.Guild, name: str, new_name: str, 
+                              archive_cat_name="Archive", try_time=0) -> None:
         """ Houses the actual logic of archiving general chat """
+        if try_time == 3: # recursive base case for protection
+            return
+        
+        archive_category = await self.get_channel_category(guild, archive_cat_name, False)
         try:
-            general_category = cast(discord.CategoryChannel, discord.utils.get(guild.categories, name=general_cat_name))
-            archive_category = cast(discord.CategoryChannel, discord.utils.get(guild.categories, name=archive_cat_name))
-            chat_to_archive = cast(discord.TextChannel, discord.utils.get(guild.text_channels, name="general"))
+            chat_to_archive, general_category = self.get_channel_to_archive(guild, name, False)
             await chat_to_archive.move(beginning=True, category=archive_category, sync_permissions=True)
-            await chat_to_archive.edit(name=archive_name)
-            new_channel = await guild.create_text_channel("general", category=general_category)
+            await chat_to_archive.edit(name=new_name)
+            new_channel = await guild.create_text_channel(name, category=general_category)
             await new_channel.send("good morning @everyone")   
+        except discord.HTTPException as ex:
+            if ex.code == 50035: # too many channels in category, make new archive category
+                printlog((f"Channel category '{archive_cat_name}' reached limit of "
+                          f"50 channels in '{guild.name}' (id: {guild.id})"))
+                await guild.create_category_channel(archive_cat_name, position=archive_category.position-1)
+                await self.archive_general(guild, name, new_name, archive_cat_name, 
+                                           try_time=try_time+1)
+            else:
+                printlog(str(ex))
         except Exception as ex:
             printlog(str(ex))
             
@@ -56,11 +69,11 @@ class ArchiveCog(Cog, name="Archive"):
         """ Handles repeatedly archiving general chat """
         await self.sleep_until_archive()
         while True:
-            archive_name: str = db.update_next_archive_date(freq)
+            archive_name: str = db.update_next_archive_date("general", freq)
             for guild in self.bot.guilds:
                 now = datetime.now()
                 try:
-                    await self.archive_general(guild=guild, archive_name=archive_name)
+                    await self.archive_general(guild=guild, name="general", new_name=archive_name)
                     printlog(str(now) + f": general archived in '{guild.name}' (id: {guild.id})")
                 except Exception as ex:
                     printlog(str(now) + f": there was an error archiving general in '{guild.name}' (id: {guild.id}): {str(ex)}")
@@ -73,4 +86,55 @@ class ArchiveCog(Cog, name="Archive"):
         wait_time = (then - now).total_seconds()
         await asyncio.sleep(wait_time)
         
+    async def get_channel_category(self, guild: discord.Guild, name: str, 
+                                   case_sens: bool) -> discord.CategoryChannel:
+        """ Returns the discord.CategoryChannel of the first channel category 
+            in the given guild that matches the given name """
+        def search_predicate(category: discord.CategoryChannel) -> bool:
+            return (category.name == name if case_sens else 
+                    category.name.lower() == name.lower())
+            
+        result = discord.utils.find(search_predicate, guild.categories)
+        if result == None:
+            result = await guild.create_category(name)
+            printlog((f"The channel category '{name}' doesn't exist in "
+                      f"'{guild.name}', so new category created "
+                      f"(id: {guild.id})"))
+            
+        return result
+    
+    def get_channel_to_archive(self, guild: discord.Guild, 
+        name: str, case_sens: bool) -> tuple[discord.TextChannel, discord.CategoryChannel]:
+        """ Returns the discord.TextChannel of the first text channel in the given guild 
+            that matches the given name. Also, returns the channel category that the
+            channel was in """
+        def search_category_predicate(category: discord.CategoryChannel) -> bool:
+            for channel in category.text_channels:
+                if case_sens:
+                    if channel.name == name:
+                        return True
+                else:
+                    if channel.name.lower() == name.lower():
+                        return True
+            return False
+        def search_channel_predicate(channel: discord.TextChannel) -> bool:
+            return (channel.name == name if case_sens else 
+                    channel.name.lower() == name.lower())
+            
+        category = discord.utils.find(search_category_predicate, guild.categories)
+        if category != None: # channel is in a category
+            channel = discord.utils.find(search_channel_predicate, category.text_channels)
+            if channel == None:
+                raise Exception((f"Couldn't find a channel named '{name}' in the channel "
+                             f"category '{category.name}' in '{guild.name} (id: {guild.id})'"))
+            return channel, category
+            
+        # channel is not in a category           
+        channel = discord.utils.find(search_channel_predicate, guild.text_channels)
+        if channel == None:
+            raise Exception((f"Couldn't find a channel named '{name}' in "
+                             f"'{guild.name} (id: {guild.id})'"))
+            
+        return channel, None # type: ignore
+    
     #endregion

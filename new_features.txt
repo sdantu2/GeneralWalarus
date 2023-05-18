@@ -8,6 +8,9 @@ New features to implement:
       - how often to archive
       - name of archive category
       - toggling automated role change for elections
+    - other functionality
+      - discord authentication
+      - delete archives
 - casino
 - GUI within Discord for certain commands (especially for $help)
 - chatbot command w/ ChatGPT
