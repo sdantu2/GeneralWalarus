@@ -28,17 +28,17 @@ def _role_name(role: discord.Role) -> str:
 def _member_name(member: discord.Member) -> str:
     return member.name
 
-def remove_discord_server(discord_server: discord.Guild) -> int:
+def remove_discord_server(guild: discord.Guild) -> int:
     """ Remove the given server from all relevant collections, returns the number of documents deleted """
     connected_servers = db.connected_servers
     user_stats = db.user_stats
-    total = connected_servers.delete_many({"_id": discord_server.id}).deleted_count
+    total = connected_servers.delete_many({"_id": guild.id}).deleted_count
     return total
 
 def get_rshuffle(guild: discord.Guild) -> list[str]:
     connected_servers = db.connected_servers
     query = connected_servers.find_one({
-                                            "name": guild.name
+                                            "_id": guild.id
                                        },
                                        {
                                             "rshuffle": 1
@@ -48,7 +48,21 @@ def get_rshuffle(guild: discord.Guild) -> list[str]:
 
 def get_ushuffle(guild: discord.Guild) -> list[str]:
     connected_servers = db.connected_servers
-    query = connected_servers.find_one({ "name": guild.name },
+    query = connected_servers.find_one({ "_id": guild.id },
                                        { "ushuffle": 1 })
     query_dict: dict = cast(dict, query)
     return [] if query_dict.get("ushuffle") == None else query_dict["ushuffle"]
+
+def get_archive_category(guild: discord.Guild) -> str:
+    connected_servers = db.connected_servers
+    query = connected_servers.find_one({ "_id": guild.id },
+                                       { "archive_category": 1 })
+    query_dict: dict = cast(dict, query)
+    return str(query_dict["archive_category"])
+
+def get_chat_to_archive(guild: discord.Guild) -> str:
+    connected_servers = db.connected_servers
+    query = connected_servers.find_one({ "_id": guild.id },
+                                       { "chat_to_archive": 1 })
+    query_dict: dict = cast(dict, query)
+    return str(query_dict["chat_to_archive"])

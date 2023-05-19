@@ -18,14 +18,12 @@ class ArchiveCog(Cog, name="Archive"):
     #region Commands
     
     @commands.command(name="archivegeneral", aliases=["archive"])
-    async def test_archive_general(self, ctx: commands.Context, name="general", 
-                                   archive_cat_name="Archive", freq=2) -> None:
+    async def test_archive_general(self, ctx: commands.Context, freq=2) -> None:
         """ Command that manually runs archive function for testing purposes """
         if ctx.guild is None: 
             raise Exception("ctx.guild is None")
         if ctx.author.id == ctx.guild.owner_id:
-            new_name = db.update_next_archive_date(name, timedelta(weeks=freq), False)
-            await self.archive_general(ctx.guild, name, new_name, archive_cat_name)
+            await self.archive_general(ctx.guild, update_db=False)
         else:
             await ctx.send("Only the owner can use this command")
             
@@ -49,12 +47,14 @@ class ArchiveCog(Cog, name="Archive"):
     
     #region Helper Functions
         
-    async def archive_general(self, guild: discord.Guild, name: str, new_name: str, 
-                              archive_cat_name="Archive", try_time=0) -> None:
+    async def archive_general(self, guild: discord.Guild, freq=2, update_db=True, try_time=0) -> None:
         """ Houses the actual logic of archiving general chat """
         if try_time == 3: # recursive base case for protection
             return
         
+        archive_cat_name = db.get_archive_category(guild)
+        name = db.get_chat_to_archive(guild)
+        new_name = db.update_next_archive_date(name, timedelta(weeks=freq), update_db)
         archive_category = await self.get_channel_category(guild, archive_cat_name, False)
         try:
             chat_to_archive, general_category = self.get_channel_to_archive(guild, name, False)
@@ -67,8 +67,7 @@ class ArchiveCog(Cog, name="Archive"):
                 printlog((f"Channel category '{archive_cat_name}' reached limit of "
                           f"50 channels in '{guild.name}' (id: {guild.id})"))
                 await guild.create_category_channel(archive_cat_name, position=archive_category.position-1)
-                await self.archive_general(guild, name, new_name, archive_cat_name, 
-                                           try_time=try_time+1)
+                await self.archive_general(guild, try_time=try_time+1)
             else:
                 printlog(str(ex))
         except Exception as ex:
@@ -78,11 +77,12 @@ class ArchiveCog(Cog, name="Archive"):
         """ Handles repeatedly archiving general chat """
         await self.sleep_until_archive()
         while True:
-            archive_name: str = db.update_next_archive_date("general", freq)
             for guild in self.bot.guilds:
+                chat_to_archive = db.get_chat_to_archive(guild)
+                archive_name: str = db.update_next_archive_date(chat_to_archive, freq)
                 now = datetime.now()
                 try:
-                    await self.archive_general(guild=guild, name="general", new_name=archive_name)
+                    await self.archive_general(guild=guild)
                     printlog(str(now) + f": general archived in '{guild.name}' (id: {guild.id})")
                 except Exception as ex:
                     printlog(str(now) + f": there was an error archiving general in '{guild.name}' (id: {guild.id}): {str(ex)}")

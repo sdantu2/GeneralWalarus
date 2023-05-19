@@ -5,8 +5,10 @@ from pytz import timezone
 
 def printlog(message: str) -> None:
     """ Prints input message to log file """
+    eastern = timezone("US/Eastern")
+    now = datetime.now(tz=eastern)
     log_file = open("log", "a")
-    log_file.write(message + "\n")
+    log_file.write(f"{now}: {message}\n")
     log_file.close()
     
 def timef(dt: datetime) -> str:
