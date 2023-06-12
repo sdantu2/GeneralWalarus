@@ -54,7 +54,7 @@ class ArchiveCog(Cog, name="Archive"):
         
         archive_cat_name = db.get_archive_category(guild)
         name = db.get_chat_to_archive(guild)
-        new_name = db.get_archived_name(guild)
+        new_name = db.get_archived_name(name)
         archive_category = await self.get_channel_category(guild, archive_cat_name, False)
         try:
             chat_to_archive, general_category = self.get_channel_to_archive(guild, name, False)
