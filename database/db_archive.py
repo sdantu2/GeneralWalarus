@@ -1,5 +1,7 @@
+import discord
 from datetime import datetime, timedelta
 from .db_globals import *
+from .db_servers import get_chat_to_archive
 from pytz import timezone
 
 def get_next_archive_date() -> datetime:
@@ -13,7 +15,15 @@ def get_next_archive_date() -> datetime:
     )
     return next_archive_date
 
-def update_next_archive_date(name: str, archive_freq: timedelta, update_db=True) -> str:
+def get_archived_name(guild: discord.Guild) -> str:
+    channel_name = guild.name
+    date = get_next_archive_date()
+    month = str(date.month)
+    day = str(date.day)
+    year = str(date.year)
+    return f"{channel_name}-{month}-{day}-{year[len(year) - 2:]}"
+
+def update_next_archive_date(archive_freq: timedelta) -> None:
     old_date = get_next_archive_date()
     new_date: datetime = old_date + archive_freq
     new_date_fields = {
@@ -24,10 +34,5 @@ def update_next_archive_date(name: str, archive_freq: timedelta, update_db=True)
         "minute": new_date.minute,
         "second": new_date.second
     }
-    if update_db:
-        collection = db.next_archive_date
-        collection.update_one({"_id": DATE_ID}, {"$set": new_date_fields}, upsert=True)
-    month = str(old_date.month)
-    day = str(old_date.day)
-    year = str(old_date.year)
-    return f"{name}-{month}-{day}-{year[len(year) - 2:]}"
+    collection = db.next_archive_date
+    collection.update_one({"_id": DATE_ID}, {"$set": new_date_fields}, upsert=True)

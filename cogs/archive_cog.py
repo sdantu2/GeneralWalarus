@@ -23,7 +23,7 @@ class ArchiveCog(Cog, name="Archive"):
         if ctx.guild is None: 
             raise Exception("ctx.guild is None")
         if ctx.author.id == ctx.guild.owner_id:
-            await self.archive_general(ctx.guild, update_db=False)
+            await self.archive_general(ctx.guild)
         else:
             await ctx.send("Only the owner can use this command")
             
@@ -47,14 +47,14 @@ class ArchiveCog(Cog, name="Archive"):
     
     #region Helper Functions
         
-    async def archive_general(self, guild: discord.Guild, freq=2, update_db=True, try_time=0) -> None:
+    async def archive_general(self, guild: discord.Guild, freq=2, try_time=0) -> None:
         """ Houses the actual logic of archiving general chat """
         if try_time == 3: # recursive base case for protection
             return
         
         archive_cat_name = db.get_archive_category(guild)
         name = db.get_chat_to_archive(guild)
-        new_name = db.update_next_archive_date(name, timedelta(weeks=freq), update_db)
+        new_name = db.get_archived_name(guild)
         archive_category = await self.get_channel_category(guild, archive_cat_name, False)
         try:
             chat_to_archive, general_category = self.get_channel_to_archive(guild, name, False)
@@ -78,14 +78,13 @@ class ArchiveCog(Cog, name="Archive"):
         await self.sleep_until_archive()
         while True:
             for guild in self.bot.guilds:
-                chat_to_archive = db.get_chat_to_archive(guild)
-                archive_name: str = db.update_next_archive_date(chat_to_archive, freq)
                 now = datetime.now()
                 try:
                     await self.archive_general(guild=guild)
                     printlog(str(now) + f": general archived in '{guild.name}' (id: {guild.id})")
                 except Exception as ex:
                     printlog(str(now) + f": there was an error archiving general in '{guild.name}' (id: {guild.id}): {str(ex)}")
+            db.update_next_archive_date(freq)
             await self.sleep_until_archive()
 
     async def sleep_until_archive(self) -> None:
