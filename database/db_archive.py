@@ -15,8 +15,7 @@ def get_next_archive_date() -> datetime:
     )
     return next_archive_date
 
-def get_archived_name(guild: discord.Guild) -> str:
-    channel_name = guild.name
+def get_archived_name(channel_name: str) -> str:
     date = get_next_archive_date()
     month = str(date.month)
     day = str(date.day)
