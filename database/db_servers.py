@@ -43,6 +43,8 @@ def get_rshuffle(guild: discord.Guild) -> list[str]:
                                        {
                                             "rshuffle": 1
                                        })
+    if query is None:
+        return []
     query_dict: dict = cast(dict, query)
     return [] if query_dict.get("rshuffle") == None else query_dict["rshuffle"]
 
@@ -50,6 +52,8 @@ def get_ushuffle(guild: discord.Guild) -> list[str]:
     connected_servers = db.connected_servers
     query = connected_servers.find_one({ "_id": guild.id },
                                        { "ushuffle": 1 })
+    if query is None:
+        return []
     query_dict: dict = cast(dict, query)
     return [] if query_dict.get("ushuffle") == None else query_dict["ushuffle"]
 
