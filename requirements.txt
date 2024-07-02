@@ -1,5 +1,5 @@
 openai
-py-cord
+py-cord[voice]
 pymongo[srv]
 PyNaCl
 python-dotenv

@@ -1,5 +1,3 @@
-from dotenv import load_dotenv
-load_dotenv() # need to load environment variables before anything else
 import os
 import discord
 from discord.ext import commands
@@ -19,6 +17,7 @@ def main():
     intents = discord.Intents.default()
     intents.message_content = True
     intents.members = True
+    intents.voice_states = True
     bot: discord.Bot = commands.Bot(command_prefix=get_server_prefix(), intents=intents) # type: ignore
     bot.add_cog(EventsCog(bot))
     bot.add_cog(ArchiveCog(bot))
