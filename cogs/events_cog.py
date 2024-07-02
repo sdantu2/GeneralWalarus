@@ -6,8 +6,8 @@ import discord.utils
 import database as db
 from datetime import timedelta
 from typing import cast
-from models import Server
-from globals import servers, start_mutex
+from models import Server, VCConnection
+from globals import servers, start_mutex, vc_connections
 from utilities import printlog
 
 class EventsCog(Cog, name="Events"):
@@ -77,6 +77,23 @@ class EventsCog(Cog, name="Events"):
             gets deafened/undeafened, etc.) """
         guild: discord.Guild = member.guild
         self.db_update_voice(member, guild, before, after)
+
+        if self.bot.user and member.id == self.bot.user.id:
+            if not before.channel and after.channel:
+                # bot joined VC
+                server = servers[guild]
+                voice_client = after.channel.guild.voice_client
+                if isinstance(voice_client, discord.VoiceClient):
+                    # Updating the cache with the guild and channel.
+                    vc_connections.update({guild: VCConnection(server, voice_client)})
+            if before.channel and not after.channel:
+                # bot left VC
+                voice_client = before.channel.guild.voice_client
+                if voice_client:
+                    voice_client.cleanup()
+                # Remove the guild from the cache.
+                del vc_connections[guild]
+          
         
     #endregion
     
