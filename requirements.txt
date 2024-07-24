@@ -1,7 +1,7 @@
 openai
 py-cord[voice]
 pydub
-pymongo[srv]
+pymongo
 PyNaCl
 python-dotenv
 pytz
