@@ -87,4 +87,3 @@ def set_sse_status(guild: discord.Guild, status: bool):
 def get_active_sse_servers():
     connected_servers = db.connected_servers
     query = connected_servers.find({ "sse": True })
-    print(query)
