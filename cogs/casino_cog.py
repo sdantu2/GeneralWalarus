@@ -89,7 +89,7 @@ class CasinoCog(Cog, name="Casino"):
         await ctx.send("@everyone The Srinath Stock Exchange is now open for business at "
                        f"price of ${round(price, 2):,.2f}!")
         
-        cron_trigger = CronTrigger.from_crontab("0 5 * * *")
+        cron_trigger = CronTrigger.from_crontab("0 9 * * *")
         scheduler = BackgroundScheduler()
         self.__job = scheduler.add_job(self.__get_new_sse_price, cron_trigger, args=[ctx.guild, True])
         scheduler.start()
