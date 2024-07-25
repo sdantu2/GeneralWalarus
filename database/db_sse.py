@@ -28,10 +28,10 @@ def get_prices(discord_server: discord.Guild):
     prices = []
 
     price_log = db.sse_price_log
-    results = price_log.find({ "_id.server_id": discord_server.id }, { "_id.timestamp": 1, "price": 1 })
+    results = price_log.find({ "_id.server_id": discord_server.id }, { "_id.timestamp": 1, "price": 1 }, sort=[("_id.timestamp", 1)])
 
     for result in results:
-        timestamps.append(str( result["_id"]["timestamp"].date()))
+        timestamps.append(str(result["_id"]["timestamp"].date()))
         prices.append(result["price"])
 
     return (timestamps, prices)
