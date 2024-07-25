@@ -70,3 +70,21 @@ def get_chat_to_archive(guild: discord.Guild) -> str:
                                        { "chat_to_archive": 1 })
     query_dict: dict = cast(dict, query)
     return str(query_dict["chat_to_archive"])
+
+def get_sse_status(guild: discord.Guild) -> bool:
+    connected_servers = db.connected_servers
+    query = connected_servers.find_one({ "_id": guild.id },
+                                       { "sse": 1 } )
+    query_dict = cast(dict, query)
+    status = bool(query_dict["sse"])
+    return status
+
+def set_sse_status(guild: discord.Guild, status: bool):
+    connected_servers = db.connected_servers
+    query = connected_servers.update_one({ "_id": guild.id },
+                                         { "$set": { "sse": status } })
+
+def get_active_sse_servers():
+    connected_servers = db.connected_servers
+    query = connected_servers.find({ "sse": True })
+    print(query)
