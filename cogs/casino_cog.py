@@ -46,6 +46,8 @@ class CasinoCog(Cog, name="Casino"):
         
         curr_price = db.get_current_sse_price(ctx.guild)
         db.set_transaction(member=ctx.author, curr_price=curr_price, transaction_type="buy")
+        await ctx.send(f"{ctx.author.name} just bought into the Srinath Stock Exchange for "
+                       f"${round(curr_price, 2):,.2f}")
 
     @commands.command(name="ssesell", aliases=["sell", "sellstock"])
     async def sse_sell(self, ctx: commands.Context):
@@ -64,6 +66,8 @@ class CasinoCog(Cog, name="Casino"):
 
         curr_price = db.get_current_sse_price(ctx.guild)
         db.set_transaction(member=ctx.author, curr_price=curr_price, transaction_type="sell")
+        await ctx.send(f"{ctx.author.name} just sold share in the Srinath Stock Exchange for "
+                       f"${round(curr_price, 2):,.2f}")
 
     @commands.command(name="sseopen", aliases=["ssestart"])
     async def sse_start(self, ctx: commands.Context):
@@ -109,6 +113,7 @@ class CasinoCog(Cog, name="Casino"):
         
     @commands.command(name="lasttransaction")
     async def sse_last_transaction(self, ctx: commands.Context, member: discord.Member | None = None):
+        """ View details about your last SSE transaction """
         if member is None:
             member = ctx.author
         transaction = db.get_last_transaction(member)

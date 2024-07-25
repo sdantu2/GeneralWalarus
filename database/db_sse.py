@@ -8,7 +8,7 @@ def get_current_sse_price(discord_server: discord.Guild) -> float:
     price_log = db.sse_price_log
     query = price_log.find_one({ "_id.server_id": discord_server.id }, { "_id": 0, "price": 1 }, 
                                     sort=[("_id.timestamp", -1)])
-    query_dict = cast(dict, query)
+    query_dict = cast(dict, query) 
     price = float(query_dict["price"])
     return price
 
@@ -54,5 +54,5 @@ def get_last_transaction(member: discord.Member):
     transaction_log = db.sse_transaction_log
     guild = member.guild
     query = transaction_log.find_one({ "server_id": guild.id, "user_id": member.id }, sort=[("timestamp", -1)])
-    query_dict = cast(dict, query)
+    query_dict = { "action": None } if query is None else cast(dict, query)
     return query_dict
