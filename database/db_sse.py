@@ -12,6 +12,7 @@ def get_current_sse_price(discord_server: discord.Guild) -> float:
     price = float(query_dict["price"])
     return price
 
+
 def set_current_sse_price(discord_server: discord.Guild, new_price: float) -> bool:
     price_log = db.sse_price_log
     timestamp = datetime.now()
@@ -22,6 +23,7 @@ def set_current_sse_price(discord_server: discord.Guild, new_price: float) -> bo
                                     },
                                     "price": new_price,
                                 }).acknowledged
+
 
 def get_prices(discord_server: discord.Guild):
     timestamps = []
@@ -36,10 +38,23 @@ def get_prices(discord_server: discord.Guild):
 
     return (timestamps, prices)
 
+
 def set_transaction(member: discord.Member, curr_price: float, transaction_type: Literal["buy", "sell"]) -> bool:
     transaction_log = db.sse_transaction_log
     timestamp = datetime.now()
     guild = member.guild
+    last_transaction = get_last_transaction(member)
+    stock_value = 1
+    cash_value = 0
+
+    if last_transaction["action"] is not None:
+        if transaction_type == "buy":
+            stock_value = curr_price
+            cash_value = last_transaction["cash_value"] - curr_price
+        elif transaction_type == "sell":
+            stock_value = 0
+            cash_value = last_transaction["cash_value"] + curr_price
+
     return transaction_log.insert_one({ 
                                         "server_id": guild.id,
                                         "server_name": guild.name,
@@ -47,8 +62,11 @@ def set_transaction(member: discord.Member, curr_price: float, transaction_type:
                                         "user_name": member.name,
                                         "timestamp": timestamp, 
                                         "action": transaction_type,
-                                        "price": curr_price
+                                        "price": curr_price,
+                                        "cash_value": cash_value,
+                                        "stock_value": stock_value
                                       }).acknowledged
+
 
 def get_last_transaction(member: discord.Member):
     transaction_log = db.sse_transaction_log
@@ -56,3 +74,11 @@ def get_last_transaction(member: discord.Member):
     query = transaction_log.find_one({ "server_id": guild.id, "user_id": member.id }, sort=[("timestamp", -1)])
     query_dict = { "action": None } if query is None else cast(dict, query)
     return query_dict
+
+
+def get_transactions(member: discord.Member):
+    transaction_log = db.sse_transaction_log
+    guild = member.guild 
+    query = transaction_log.find({ "server_id": guild.id, "user_id": member.id }, sort=[("timestamp", 1)])
+    result = [transaction for transaction in query]
+    return result

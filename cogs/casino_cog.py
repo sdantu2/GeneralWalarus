@@ -29,6 +29,7 @@ class CasinoCog(Cog, name="Casino"):
                        f"**Stock Price Graph**:")
         await self.__show_graph(ctx)
 
+
     @commands.command(name="ssebuy", aliases=["buy", "buyin", "buystock"])
     async def sse_buy(self, ctx: commands.Context):
         """ Buy into the Srinath Stock Exchange at the current stock price """
@@ -49,6 +50,7 @@ class CasinoCog(Cog, name="Casino"):
         await ctx.send(f"{ctx.author.name} just bought into the Srinath Stock Exchange for "
                        f"${round(curr_price, 2):,.2f}")
 
+
     @commands.command(name="ssesell", aliases=["sell", "sellstock"])
     async def sse_sell(self, ctx: commands.Context):
         """ Sell your share of the Srinath Stock Exchange at the current stock price """
@@ -68,6 +70,7 @@ class CasinoCog(Cog, name="Casino"):
         db.set_transaction(member=ctx.author, curr_price=curr_price, transaction_type="sell")
         await ctx.send(f"{ctx.author.name} just sold share in the Srinath Stock Exchange for "
                        f"${round(curr_price, 2):,.2f}")
+
 
     @commands.command(name="sseopen", aliases=["ssestart"])
     async def sse_start(self, ctx: commands.Context):
@@ -111,6 +114,7 @@ class CasinoCog(Cog, name="Casino"):
         db.set_sse_status(ctx.guild, status=False)
         await ctx.send("@everyone The Srinath Stock Exchange is now closed")
         
+
     @commands.command(name="lasttransaction")
     async def sse_last_transaction(self, ctx: commands.Context, member: discord.Member | None = None):
         """ View details about your last SSE transaction """
@@ -118,19 +122,40 @@ class CasinoCog(Cog, name="Casino"):
             member = ctx.author
         transaction = db.get_last_transaction(member)
         if transaction is None:
-            await ctx.send(f"{"You haven't" if member.id == ctx.author.id else f'{member.name} hasn\'t'} made "
-                           "any transactions yet. Try the 'ssebuy' or 'ssesell' commands.")
+            who = "You haven't" if member.id == ctx.author.id else f"{member.name} hasn't"
+            await ctx.send(f"{who} made any transactions yet. Try the 'ssebuy' or 'ssesell' commands.")
             return
-        await ctx.send(f"Here are the details of {"your" if member.id == ctx.author.id else f'{member.name}\'s '} "
-                       "last transaction:\n"
+        who = "your" if member.id == ctx.author.id else f"{member.name}'s"
+        await ctx.send(f"Here are the details of {who} last transaction:\n"
                        f"\t**Timestamp**: {transaction['timestamp']}\n"
                        f"\t**Transaction Type**: {transaction['action']}\n"
                        f"\t**Price**: ${round(transaction['price'], 2):,.2f}")
+        
+
+    @commands.command(name="sseportfolio", aliases=["myportfolio", "seeportfolio", "portfolio"])
+    async def sse_portfolio(self, ctx: commands.Context, member: discord.Member | None = None):
+        """ View details about your SSE portfolio """
+        if member is None:
+            member = ctx.author
+
+        transaction = db.get_last_transaction(member)
+        curr_price = db.get_current_sse_price(ctx.guild)
+        stock = curr_price if transaction["action"] == "buy" else 0
+        cash = transaction["cash_value"]
+        total = stock + cash
+        who = "Your" if member.id == ctx.author.id else f"{member.name}'s"
+
+        await ctx.send(f"{who} Portfolio Breakdown:\n"
+                       f"\t**Stock Value**: ${round(stock, 2):,.2f}\n"
+                       f"\t**Cash Value**: ${round(cash, 2):,.2f}\n"
+                       f"\t**Total Portfolio Value**: ${round(total, 2):,.2f}\n"
+                       f"\t**Overall Net**: ${round(total - 1, 2):,.2f}")
+
 
     # @commands.command(name="ssetest")
-    # async def sse_test(self, ctx: commands.Context):
+    # async def sse_test(self, ctx: commands.Context, member: discord.Member | None):
     #     """ Test command for the Srinath Stock Exchange """
-    #     self.__get_new_sse_price(ctx.guild, write=True)
+    #     db.get_transactions(member)
     
     #endregion
 
