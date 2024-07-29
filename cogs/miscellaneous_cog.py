@@ -121,8 +121,9 @@ class MiscellaneousCog(Cog, name="Miscellaneous"):
 
 
     @commands.command(name="pfp")
-    async def profile_pic(self, ctx: commands.Context) -> None:
-        member: discord.Member = ctx.author
+    async def profile_pic(self, ctx: commands.Context, member: discord.Member | None = None) -> None:
+        if member is None:
+            member = ctx.author
         filename = f"{member.id}-avatar.jpg"
         await member.avatar.save(filename)
         await ctx.send(file=discord.File(filename))
