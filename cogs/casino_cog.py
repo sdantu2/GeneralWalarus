@@ -1,12 +1,14 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 import discord
+from discord import utils
 from discord.ext.commands import Cog
 from discord.ext import commands
 import database as db
 import random
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
 import os
 
 class CasinoCog(Cog, name="Casino"):
@@ -145,12 +147,47 @@ class CasinoCog(Cog, name="Casino"):
         total = stock + cash
         who = "Your" if member.id == ctx.author.id else f"{member.name}'s"
 
-        await ctx.send(f"{who} Portfolio Breakdown:\n"
-                       f"\t**Stock Value**: ${round(stock, 2):,.2f}\n"
-                       f"\t**Cash Value**: ${round(cash, 2):,.2f}\n"
-                       f"\t**Total Portfolio Value**: ${round(total, 2):,.2f}\n"
-                       f"\t**Overall Net**: ${round(total - 1, 2):,.2f}")
+        await ctx.send(f"```{who} Portfolio Breakdown:\n"
+                       f"\tStock Value: ${round(stock, 2):,.2f}\n"
+                       f"\tCash Value: ${round(cash, 2):,.2f}\n"
+                       f"\tTotal Portfolio Value: ${round(total, 2):,.2f}\n"
+                       f"\tOverall Net: ${round(total - 1, 2):,.2f}```")
 
+
+    @commands.command(name="sseleaderboard")
+    async def sse_leaderboard(self, ctx: commands.Context):
+        """ View the SSE leaderboard """
+        transactions = db.get_transactions(guild=ctx.guild)
+        participants = np.unique([transaction["user_id"] for transaction in transactions])
+        curr_price = db.get_current_sse_price(ctx.guild)
+        portfolios = []
+
+        for participant in participants:
+            member = utils.find(lambda m: m.id == participant, ctx.guild.members)
+            last_transaction = db.get_last_transaction(member)
+            stock = curr_price if last_transaction["action"] == "buy" else 0
+            cash = last_transaction["cash_value"]
+            portfolio = {
+                "stock_value": stock,
+                "cash_value": cash,
+                "total": stock + cash,
+                "net": (stock + cash) - 1
+            }
+            portfolios.append((last_transaction, portfolio))
+
+        message = "```SRINATH STOCK EXCHANGE LEADERBOARD\n\n"
+        portfolios = sorted(portfolios, key=lambda p: p[1]["total"])
+        for item in portfolios:
+            last_transaction = item[0]
+            portfolio = item[1]
+            message += (f"{last_transaction["user_name"]}\n"
+                        f"\tStock Value: ${round(portfolio["stock_value"], 2):,.2f}\n"
+                        f"\tCash Value: ${round(portfolio["cash_value"], 2):,.2f}\n"
+                        f"\tTotal Portfolio Value: ${round(portfolio["total"], 2):,.2f}\n"
+                        f"\tOverall Net: ${round(portfolio["net"], 2):,.2f}\n")   
+        message += "```"
+
+        await ctx.send(message)
 
     # @commands.command(name="ssetest")
     # async def sse_test(self, ctx: commands.Context, member: discord.Member | None):

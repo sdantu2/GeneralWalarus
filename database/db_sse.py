@@ -76,9 +76,19 @@ def get_last_transaction(member: discord.Member):
     return query_dict
 
 
-def get_transactions(member: discord.Member):
+def get_transactions(member: discord.Member | None = None, guild: discord.Guild | None = None):
     transaction_log = db.sse_transaction_log
-    guild = member.guild 
-    query = transaction_log.find({ "server_id": guild.id, "user_id": member.id }, sort=[("timestamp", 1)])
-    result = [transaction for transaction in query]
+    result = None
+
+    if member is None and guild is None:
+        raise Exception("Need to provide either a member or guild")
+
+    if member is not None:
+        guild = member.guild 
+        query = transaction_log.find({ "server_id": guild.id, "user_id": member.id }, sort=[("timestamp", 1)])
+        result = [transaction for transaction in query]
+    elif guild is not None:
+        query = transaction_log.find({ "server_id": guild.id }, sort=[("timestamp", 1)])
+        result = [transaction for transaction in query]
+
     return result
