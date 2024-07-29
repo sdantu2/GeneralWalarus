@@ -6,8 +6,8 @@ import discord.utils as utils
 import database as db
 from datetime import timedelta
 from typing import cast
-from models import Server, VCConnection
-from globals import servers, start_mutex, vc_connections
+from models import Server, VCConnection, SSESession
+from globals import servers, start_mutex, vc_connections, live_sse_sessions
 from utilities import printlog
 
 class EventsCog(Cog, name="Events"):
@@ -21,12 +21,13 @@ class EventsCog(Cog, name="Events"):
     @commands.Cog.listener()
     async def on_ready(self) -> None:
         """ Event that runs once General Walarus is up and running """
-        for guild in self.bot.guilds:
-            servers[guild] = Server(guild)
+        EventsCog.initialize_servers(self.bot)
+        EventsCog.initialize_sse_sessions(self.bot)
         print(f"General Walarus active in {len(servers)} server(s)")
         start_mutex.release()
         await self.bot.get_cog("Archive").repeat_archive(timedelta(weeks=2)) # type: ignore
         
+
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:
         """ Event that runs whenever a user sends something in a text channel """
@@ -37,6 +38,7 @@ class EventsCog(Cog, name="Events"):
             if user.id != message.author.id:
                 db.inc_user_stat(message.guild, cast(discord.User, user), "mentioned")
  
+
     @commands.Cog.listener()
     async def on_guild_join(self, guild: discord.Guild) -> None:
         """ Event that runs whenever General Walarus joins a new server\n 
@@ -44,6 +46,7 @@ class EventsCog(Cog, name="Events"):
         printlog(f"General Walarus joined guild '{guild.name}' (id: {guild.id})")
         servers[guild] = Server(guild)
         db.log_server(guild)
+
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild: discord.Guild) -> None:
@@ -53,12 +56,14 @@ class EventsCog(Cog, name="Events"):
         printlog(f"General Walarus has been removed from guild '{guild.name}' (id: {guild.id})")
         printlog(f"{db.remove_discord_server(guild)} documents removed from database")
 
+
     @commands.Cog.listener()
     async def on_guild_update(self, before: discord.Guild, after: discord.Guild):
         """ Event that runs when a server's information gets updated.\n
             Server information gets updated in the database """
         db.log_server(after)
         printlog(f"Server {before.id} was updated")
+
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member) -> None:
@@ -73,11 +78,13 @@ class EventsCog(Cog, name="Events"):
             if general is not None:
                 await general.send("@everyone the SSE has crashed!!")
         
+
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, ex: commands.CommandError):
         """ Event that runs when a user tries a command and it raises an error """
         if type(ex) == commands.CommandNotFound:
             await ctx.send("That ain't a command my brother in Christ")
+
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
@@ -139,4 +146,21 @@ class EventsCog(Cog, name="Events"):
                 db.inc_user_stat(guild, member, "time_in_vc", session_length)
             db.update_user_stats(guild, member, connected_to_vc=False, vc_timer=False)
     
+
+    @staticmethod
+    def initialize_servers(bot: discord.Bot):
+        for guild in bot.guilds:
+            servers[guild] = Server(guild)
+
+
+    @staticmethod
+    def initialize_sse_sessions(bot: discord.Bot):
+        db_sessions = db.get_active_sse_servers()
+        for item in db_sessions:
+            id = item["_id"]
+            guild = utils.find(lambda guild: guild.id == id, bot.guilds)
+            if guild is None:
+                raise Exception("guild is None")
+            live_sse_sessions[guild] = SSESession(guild, "0 9 * * *")
+
     #endregion

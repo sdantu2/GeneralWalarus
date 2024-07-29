@@ -8,7 +8,8 @@ from .db_servers import (log_server,
                          get_archive_category,
                          get_chat_to_archive,
                          get_sse_status,
-                         set_sse_status)
+                         set_sse_status,
+                         get_active_sse_servers)
 from .db_user_stats import (inc_user_stat, 
                             update_user_stats, 
                             get_user_stat, 

@@ -66,7 +66,7 @@ class StatisticsCog(Cog, name="Statistics"):
         leaderboard: list = db.get_user_stats(ctx.guild)
         sort_key = lambda user: user["sent_messages"] + user["time_in_vc"] + user["mentioned"]
         leaderboard.sort(key=sort_key, reverse=True)
-        message = "```\n"
+        message = "```SERVER STATS LEADERBOARD\n\n"
         for user in leaderboard:
             username = user["user_name"]
             mentioned = user["mentioned"]
