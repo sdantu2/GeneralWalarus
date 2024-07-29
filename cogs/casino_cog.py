@@ -197,15 +197,6 @@ class CasinoCog(Cog, name="Casino"):
     #endregion
 
     #region Helper Functions
-
-    def __get_new_sse_price(self, guild: discord.Guild, write: bool = False) -> float:
-        old_price = db.get_current_sse_price(guild)
-        rate = random.randint(-200, 700) / 10000
-        delta = old_price * rate
-        new_price = old_price + delta
-        if write:
-            db.set_current_sse_price(guild, new_price)
-        return new_price
     
     async def __show_graph(self, ctx: commands.Context):
         matplotlib.use('Agg')
