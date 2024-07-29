@@ -10,6 +10,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+from globals import live_sse_sessions
 
 class CasinoCog(Cog, name="Casino"):
     """ Class containing commands pertaining to elections """
@@ -26,8 +27,9 @@ class CasinoCog(Cog, name="Casino"):
             return
 
         price = db.get_current_sse_price(ctx.guild)
+        job = live_sse_sessions[ctx.guild].job
         await ctx.send(f"**Price**: ${round(price, 2):,.2f}\n"
-                       f"**Next Price Update**: {self.__job.next_run_time}\n"
+                       f"**Next Price Update**: {job.next_run_time}\n"
                        f"**Stock Price Graph**:")
         await self.__show_graph(ctx)
 
