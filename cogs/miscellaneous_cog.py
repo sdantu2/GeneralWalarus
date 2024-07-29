@@ -51,12 +51,14 @@ class MiscellaneousCog(Cog, name="Miscellaneous"):
             await ctx.send(
                 (f"Anjay will be unbanned in {time_until.seconds()} {time_until.seconds_unit()}")
             )
-    
+
+
     @commands.command(name="bruh")
     async def bruh(self, ctx: commands.Context) -> None:
         """ Stupid command that just has General Walarus send 'bruh' """
         await ctx.send("bruh")
         
+
     @commands.command(name="echo", aliases=["say"])
     async def echo(self, ctx: commands.Context, *words) -> None:
         """ Command that has General Walarus repeat back command args """
@@ -65,6 +67,7 @@ class MiscellaneousCog(Cog, name="Miscellaneous"):
             message += word + " "
         await ctx.send(message)
         
+
     @commands.command(name="intodatabase", aliases=["intodb"])
     async def log_server_into_database(self, ctx: commands.Context):
         """ Command to manually log a server into the database """
@@ -79,6 +82,7 @@ class MiscellaneousCog(Cog, name="Miscellaneous"):
         else:
             await ctx.send("Only the owner can use this command")
             
+
     @commands.command(name="datetime", aliases=["date", "time"])
     async def time(self, ctx: commands.Context) -> None:
         """ Get the current datetime in the timezone of the given server """
@@ -87,6 +91,7 @@ class MiscellaneousCog(Cog, name="Miscellaneous"):
         server: Server = cast(Server, servers.get(ctx.guild))
         now: datetime = now_time(server)
         await ctx.send(f"It is {now.date()}, {timef(now)}")
+
 
     @commands.command(name="settings")
     async def settings(self, ctx: commands.Context) -> None:
@@ -114,6 +119,16 @@ class MiscellaneousCog(Cog, name="Miscellaneous"):
         await dm.send((f"Link to your server settings: {base_url}/settings/{guild.id} "
                        f"(**DO NOT SHARE URL WITH ANYONE**)"))
 
+
+    @commands.command(name="pfp")
+    async def profile_pic(self, ctx: commands.Context) -> None:
+        member: discord.Member = ctx.author
+        filename = f"{member.id}-avatar.jpg"
+        await member.avatar.save(filename)
+        await ctx.send(file=discord.File(filename))
+        os.remove(filename)
+
+
     @commands.command(name="test")
     async def test(self, ctx: commands.Context) -> None:
         """ Command reserved for testing purposes """
@@ -121,5 +136,6 @@ class MiscellaneousCog(Cog, name="Miscellaneous"):
             raise Exception("ctx.guild is None")
         # if ctx.author.id != ctx.guild.owner_id:
         await ctx.send("Boi wat you tryna test 🫱")
+
 
     #endregion
