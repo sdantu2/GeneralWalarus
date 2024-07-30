@@ -1,11 +1,9 @@
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
 import discord
 from discord import utils
 from discord.ext.commands import Cog
 from discord.ext import commands
 import database as db
-import random
+from models import SSESession
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -20,14 +18,17 @@ class CasinoCog(Cog, name="Casino"):
     @commands.command(name="sse", aliases=["currentstockprice", "currentprice", "price"])
     async def sse_details(self, ctx: commands.Context):
         """ Displays details about current state of Srinath Stock Exchange """
-        sse_status = db.get_sse_status(ctx.guild)
+        guild: discord.Guild | None = ctx.guild # type: ignore
+        if guild is None:
+            raise Exception("sse_details(): guild is None")
+        sse_status = db.get_sse_status(guild)
 
         if not sse_status:
             await ctx.send("The Srinath Stock Exchange is not currently open")
             return
 
-        price = db.get_current_sse_price(ctx.guild)
-        job = live_sse_sessions[ctx.guild].job
+        price = db.get_current_sse_price(guild)
+        job = live_sse_sessions[guild].job
         await ctx.send(f"**Price**: ${round(price, 2):,.2f}\n"
                        f"**Next Price Update**: {job.next_run_time}\n"
                        f"**Stock Price Graph**:")
@@ -37,20 +38,24 @@ class CasinoCog(Cog, name="Casino"):
     @commands.command(name="ssebuy", aliases=["buy", "buyin", "buystock"])
     async def sse_buy(self, ctx: commands.Context):
         """ Buy into the Srinath Stock Exchange at the current stock price """
-        sse_status = db.get_sse_status(ctx.guild)
+        guild: discord.Guild | None = ctx.guild # type: ignore
+        if guild is None:
+            raise Exception("sse_buy(): guild is None")
+        sse_status = db.get_sse_status(guild)
 
         if not sse_status:
             await ctx.send("The Srinath Stock Exchange is not currently open")
             return
         
-        last_transaction = db.get_last_transaction(ctx.author)["action"]
+        author: discord.Member = ctx.author # type: ignore
+        last_transaction = db.get_last_transaction(author)["action"]
         
         if last_transaction == "buy": 
             await ctx.send("You are already bought into the SSE!")
             return
         
-        curr_price = db.get_current_sse_price(ctx.guild)
-        db.set_transaction(member=ctx.author, curr_price=curr_price, transaction_type="buy")
+        curr_price = db.get_current_sse_price(guild)
+        db.set_transaction(member=author, curr_price=curr_price, transaction_type="buy")
         await ctx.send(f"{ctx.author.name} just bought into the Srinath Stock Exchange for "
                        f"${round(curr_price, 2):,.2f}")
 
@@ -58,20 +63,24 @@ class CasinoCog(Cog, name="Casino"):
     @commands.command(name="ssesell", aliases=["sell", "sellstock"])
     async def sse_sell(self, ctx: commands.Context):
         """ Sell your share of the Srinath Stock Exchange at the current stock price """
-        sse_status = db.get_sse_status(ctx.guild)
+        guild: discord.Guild | None = ctx.guild # type: ignore
+        if guild is None:
+            raise Exception("sse_sell(): guild is None")
+        sse_status = db.get_sse_status(guild)
 
         if not sse_status:
             await ctx.send("The Srinath Stock Exchange is not currently open")
             return
         
-        last_transaction = db.get_last_transaction(ctx.author)["action"]
+        author: discord.Member = ctx.author # type: ignore
+        last_transaction = db.get_last_transaction(author)["action"]
 
         if last_transaction == "sell":
             await ctx.send("You haven't bought into the SSE yet!")
             return
 
-        curr_price = db.get_current_sse_price(ctx.guild)
-        db.set_transaction(member=ctx.author, curr_price=curr_price, transaction_type="sell")
+        curr_price = db.get_current_sse_price(guild)
+        db.set_transaction(member=author, curr_price=curr_price, transaction_type="sell")
         await ctx.send(f"{ctx.author.name} just sold share in the Srinath Stock Exchange for "
                        f"${round(curr_price, 2):,.2f}")
 
@@ -83,23 +92,23 @@ class CasinoCog(Cog, name="Casino"):
             await ctx.send("Only the server owner can use this command")
             return 
         
-        sse_status = db.get_sse_status(ctx.guild)
+        guild: discord.Guild | None = ctx.guild # type: ignore
+        if guild is None:
+            raise Exception("sse_start(): guild is None")
+        sse_status = db.get_sse_status(guild)
 
         if sse_status:
             await ctx.send("The Srinath Stock Exchange is already open!")
             return
 
         OPENING_PRICE = 1.00
-        db.set_sse_status(ctx.guild, status=True)
-        db.set_current_sse_price(ctx.guild, OPENING_PRICE)
-        price = db.get_current_sse_price(ctx.guild)
+        db.set_sse_status(guild, status=True)
+        db.set_current_sse_price(guild, OPENING_PRICE)
+        price = db.get_current_sse_price(guild)
         await ctx.send("@everyone The Srinath Stock Exchange is now open for business at "
                        f"price of ${round(price, 2):,.2f}!")
         
-        cron_trigger = CronTrigger.from_crontab("0 9 * * *")
-        scheduler = BackgroundScheduler()
-        self.__job = scheduler.add_job(self.__get_new_sse_price, cron_trigger, args=[ctx.guild, True])
-        scheduler.start()
+        live_sse_sessions[guild] = SSESession(guild, "0 9 * * *")
 
 
     @commands.command(name="sseclose", aliases=["ssestop", "sseend"])
@@ -109,14 +118,19 @@ class CasinoCog(Cog, name="Casino"):
             await ctx.send("Only the server owner can use this command")
             return
 
-        sse_status = db.get_sse_status(ctx.guild)
+        guild: discord.Guild | None = ctx.guild # type: ignore
+        if guild is None:
+            raise Exception("sse_end(): guild is None")
+        sse_status = db.get_sse_status(guild)
         
         if not sse_status:
             await ctx.send("The Srinath Stock Exchange is not currently open")
             return
         
-        db.set_sse_status(ctx.guild, status=False)
+        db.set_sse_status(guild, status=False)
         await ctx.send("@everyone The Srinath Stock Exchange is now closed")
+
+        del live_sse_sessions[guild]
         
 
     @commands.command(name="lasttransaction")
