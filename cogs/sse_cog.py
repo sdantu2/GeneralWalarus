@@ -10,7 +10,7 @@ import numpy as np
 import os
 from globals import live_sse_sessions
 
-class CasinoCog(Cog, name="Casino"):
+class SSECog(Cog, name="Srinath Stock Exchange"):
     """ Class containing commands pertaining to elections """
 
     #region Commands
