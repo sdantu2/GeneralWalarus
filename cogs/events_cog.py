@@ -96,18 +96,12 @@ class EventsCog(Cog, name="Events"):
         if self.bot.user and member.id == self.bot.user.id:
             if not before.channel and after.channel:
                 # bot joined VC
-                server = servers[guild]
                 voice_client = after.channel.guild.voice_client
-                if isinstance(voice_client, discord.VoiceClient):
-                    # Updating the cache with the guild and channel.
-                    vc_connections.update({guild: VCConnection(server, voice_client)})
             if before.channel and not after.channel:
                 # bot left VC
                 voice_client = before.channel.guild.voice_client
                 if voice_client:
                     voice_client.cleanup()
-                # Remove the guild from the cache.
-                del vc_connections[guild]
           
         
     #endregion
