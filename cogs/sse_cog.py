@@ -10,7 +10,7 @@ import numpy as np
 import os
 from globals import live_sse_sessions
 
-class CasinoCog(Cog, name="Casino"):
+class SSECog(Cog, name="Srinath Stock Exchange"):
     """ Class containing commands pertaining to elections """
 
     #region Commands
@@ -192,7 +192,7 @@ class CasinoCog(Cog, name="Casino"):
             portfolios.append((last_transaction, portfolio))
 
         message = "```SRINATH STOCK EXCHANGE LEADERBOARD\n\n"
-        portfolios = sorted(portfolios, key=lambda p: p[1]["total"])
+        portfolios = sorted(portfolios, key=lambda p: p[1]["total"], reverse=True)
         for item in portfolios:
             last_transaction = item[0]
             portfolio = item[1]

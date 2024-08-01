@@ -5,4 +5,4 @@ from .miscellaneous_cog import MiscellaneousCog
 from .voice_cog import VoiceCog
 from .stats_cog import StatisticsCog
 from .openai_cog import OpenAICog
-from .casino_cog import CasinoCog
+from .sse_cog import SSECog

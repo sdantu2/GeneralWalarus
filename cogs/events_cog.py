@@ -94,9 +94,6 @@ class EventsCog(Cog, name="Events"):
         self.db_update_voice(member, guild, before, after)
 
         if self.bot.user and member.id == self.bot.user.id:
-            if not before.channel and after.channel:
-                # bot joined VC
-                voice_client = after.channel.guild.voice_client
             if before.channel and not after.channel:
                 # bot left VC
                 voice_client = before.channel.guild.voice_client
