@@ -181,9 +181,11 @@ class SSECog(Cog, name="Srinath Stock Exchange"):
         for participant in participants:
             member = utils.find(lambda m: m.id == participant, ctx.guild.members)
             last_transaction = db.get_last_transaction(member)
+            name = last_transaction["user_name"]
             stock = curr_price if last_transaction["action"] == "buy" else 0
             cash = last_transaction["cash_value"]
             portfolio = {
+                "name": name,
                 "stock_value": stock,
                 "cash_value": cash,
                 "total": stock + cash,
@@ -192,7 +194,7 @@ class SSECog(Cog, name="Srinath Stock Exchange"):
             portfolios.append((last_transaction, portfolio))
 
         message = "```SRINATH STOCK EXCHANGE LEADERBOARD\n\n"
-        portfolios = sorted(portfolios, key=lambda p: p[1]["total"], reverse=True)
+        portfolios = sorted(portfolios, key=lambda p: (-p[1]["total"], p[1]["name"]))
         for item in portfolios:
             last_transaction = item[0]
             portfolio = item[1]
