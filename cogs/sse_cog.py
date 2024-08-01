@@ -192,7 +192,7 @@ class SSECog(Cog, name="Srinath Stock Exchange"):
             portfolios.append((last_transaction, portfolio))
 
         message = "```SRINATH STOCK EXCHANGE LEADERBOARD\n\n"
-        portfolios = sorted(portfolios, key=lambda p: p[1]["total"])
+        portfolios = sorted(portfolios, key=lambda p: p[1]["total"], reverse=True)
         for item in portfolios:
             last_transaction = item[0]
             portfolio = item[1]
