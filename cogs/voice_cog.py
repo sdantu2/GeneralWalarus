@@ -27,14 +27,14 @@ class VoiceCog(Cog, name="Voice"):
         voice_client = await voice.channel.connect()
         sink = discord.sinks.MP3Sink()
 
+        recording = await ctx.send("***BE WARNED*** I'm recording you fuckers 🔴")
         voice_client.start_recording(
             sink,  # The sink type to use.
             VoiceCog.clip_callback,  # What to do once done.
-            ctx.channel,  # The channel to disconnect from.
+            ctx,  # The command context 
+            recording,  # Recording message to delete when done
             sync_start=True  # Everyone's audio is in sync
         )
-        # VoiceCog.save_clip(ctx)
-        await ctx.send("***BE WARNED*** I'm recording you fuckers 🔴")
 
         guild: discord.Guild | None = ctx.guild # type: ignore  
         if guild is None:
@@ -65,54 +65,43 @@ class VoiceCog(Cog, name="Voice"):
     # region Helper Functions
 
     @staticmethod
-    def save_clip(ctx: commands.Context):
-        while True:
-            time.sleep(10)
-            if ctx.guild in vc_connections:
-                voice_client = vc_connections[ctx.guild].voice_client
-                voice_client.stop_recording()   
-                voice_client.start_recording(
-                    discord.sinks.MP3Sink(),
-                    VoiceCog.clip_callback,
-                    ctx.channel,
-                    sync_start=True
-                )
-            else:
-                raise Exception(f'{ctx.guild.name} has no connection in vc_connections')
-
-
-    @staticmethod
-    async def clip_callback(sink: discord.sinks.MP3Sink, channel: discord.TextChannel):
-        recorded_users = [  # A list of recorded users
-            f"<@{user_id}>"
-            for user_id, audio in sink.audio_data.items()
-        ]
-
-        user_initiated = True if vc_connections.get(channel.guild) is None else False
+    async def clip_callback(sink: discord.sinks.MP3Sink, ctx: commands.Context,
+                            recording_msg: discord.Message):
+        await recording_msg.delete()
+        processing_msg = await ctx.send("Processing your clip...")
 
         # Combine individual users' audio recordings into into one file
         files = [audio.file for audio in sink.audio_data.values()]
-        filename = f'combined-{datetime.now()}.mp3'
-        VoiceCog.combine_user_audios(audio_files=files, format='mp3', output_filepath=filename)
-        combined_file = discord.File(filename, filename='clip.mp3')
         
-        if user_initiated:
-            await sink.vc.disconnect()  # Disconnect from the voice channel.
-            await channel.send('Here is your clip', files=[combined_file])
+        if files:
+            filename = f"combined-{datetime.now()}.mp3"
+            VoiceCog.combine_user_audios(audio_files=files, format="mp3", output_filepath=filename)
+            combined_file = discord.File(filename, filename="clip.mp3")
+            await ctx.send("Here is your clip", files=[combined_file])
             os.remove(filename)
+        else:
+            await ctx.send("Nothing to clip my man")
+        
+        await sink.vc.disconnect()  # Disconnect from the voice channel.
+        await processing_msg.delete()
 
 
     @staticmethod
-    def combine_user_audios(audio_files: List, format: Literal['wav', 'mp3'], output_filepath: str, 
+    def combine_user_audios(audio_files: List, format: Literal["wav", "mp3"], output_filepath: str, 
                             max_length_ms: int = 30000):
         """ Splices the given audio files into one """
         audio_segments = [AudioSegment.from_file(file=file, format=format) for file in audio_files]
         max_audio_length = max(audio_segments, key=lambda audio: audio.duration_seconds).duration_seconds
         max_audio_length_ms = max_audio_length * 1000  # x1000 to convert seconds to ms
         duration = min(max_audio_length_ms, max_length_ms)
-        combined = AudioSegment.silent(duration=duration)
+        combined = AudioSegment.silent(duration=max_audio_length_ms)
+
+        # combine to sync all audio segments from the beginning
         for segment in audio_segments:
             combined = combined.overlay(segment)
-        combined.export(output_filepath, format=format)
+        combined = combined[-duration:]
+
+        if isinstance(combined, AudioSegment):
+            combined.export(output_filepath, format=format)
 
     # endregion
