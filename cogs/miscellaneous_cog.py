@@ -20,7 +20,7 @@ class MiscellaneousCog(Cog, name="Miscellaneous"):
         eastern = timezone("US/Eastern")
         now: datetime = datetime.now(tz=eastern)
         datetime_unbanned: datetime = eastern.localize(
-            datetime(year=2023, month=6, day=4, hour=21, minute=8)
+            datetime(year=2024, month=9, day=19, hour=21, minute=40)
         )
         sec_until: int = (datetime_unbanned - now).total_seconds().__floor__()
 
