@@ -74,7 +74,9 @@ class VoiceCog(Cog, name="Voice"):
         files = [audio.file for audio in sink.audio_data.values()]
         
         if files:
-            filename = f"combined-{datetime.now()}.mp3"
+            now = datetime.now()
+            unique_id = f"{now.year}{now.month}{now.day}{now.hour}{now.minute}{now.second}"
+            filename = f"combined{unique_id}.mp3"
             VoiceCog.combine_user_audios(audio_files=files, format="mp3", output_filepath=filename)
             combined_file = discord.File(filename, filename="clip.mp3")
             await ctx.send("Here is your clip", files=[combined_file])
@@ -100,7 +102,7 @@ class VoiceCog(Cog, name="Voice"):
         for segment in audio_segments:
             combined = combined.overlay(segment)
         combined = combined[-duration:]
-
+        
         if isinstance(combined, AudioSegment):
             combined.export(output_filepath, format=format)
 
