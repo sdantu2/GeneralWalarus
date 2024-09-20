@@ -1,3 +1,4 @@
+import asyncio
 import os
 import discord
 from discord.ext import commands
@@ -10,7 +11,7 @@ import shell as sh
 from threading import Thread
 from utilities import get_server_prefix
 
-def run_bot(bot: discord.Bot):
+def run_bot(bot: commands.Bot):
     bot.run(os.getenv("BOT_TOKEN"))
 
 def main():    
@@ -19,7 +20,7 @@ def main():
     intents.message_content = True
     intents.members = True
     intents.voice_states = True
-    bot: discord.Bot = commands.Bot(command_prefix=get_server_prefix(), intents=intents) # type: ignore
+    bot: commands.Bot = commands.Bot(command_prefix=get_server_prefix(), intents=intents) # type: ignore
     bot.add_cog(EventsCog(bot))
     bot.add_cog(ArchiveCog(bot))
     bot.add_cog(ElectionCog())
