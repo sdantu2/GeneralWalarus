@@ -15,7 +15,7 @@ class SSECog(Cog, name="Chris Stock Exchange"):
 
     #region Commands
     
-    @commands.command(name="sse", aliases=["currentstockprice", "currentprice", "price"])
+    @commands.command(name="cse", aliases=["currentstockprice", "currentprice", "price"])
     async def sse_details(self, ctx: commands.Context):
         """ Displays details about current state of Chris Stock Exchange """
         guild: discord.Guild | None = ctx.guild # type: ignore
@@ -35,7 +35,7 @@ class SSECog(Cog, name="Chris Stock Exchange"):
         await self.__show_graph(ctx)
 
 
-    @commands.command(name="ssebuy", aliases=["buy", "buyin", "buystock"])
+    @commands.command(name="csebuy", aliases=["buy", "buyin", "buystock"])
     async def sse_buy(self, ctx: commands.Context):
         """ Buy into the Chris Stock Exchange at the current stock price """
         guild: discord.Guild | None = ctx.guild # type: ignore
@@ -60,7 +60,7 @@ class SSECog(Cog, name="Chris Stock Exchange"):
                        f"${round(curr_price, 2):,.2f}")
 
 
-    @commands.command(name="ssesell", aliases=["sell", "sellstock"])
+    @commands.command(name="csesell", aliases=["sell", "sellstock"])
     async def sse_sell(self, ctx: commands.Context):
         """ Sell your share of the Chris Stock Exchange at the current stock price """
         guild: discord.Guild | None = ctx.guild # type: ignore
@@ -85,7 +85,7 @@ class SSECog(Cog, name="Chris Stock Exchange"):
                        f"${round(curr_price, 2):,.2f}")
 
 
-    @commands.command(name="sseopen", aliases=["ssestart"])
+    @commands.command(name="cseopen", aliases=["csestart"])
     async def sse_start(self, ctx: commands.Context):
         """ Open the Chris Stock Exchange for business """
         if ctx.author.id != ctx.guild.owner_id:
@@ -111,7 +111,7 @@ class SSECog(Cog, name="Chris Stock Exchange"):
         live_sse_sessions[guild] = SSESession(guild, "0 9 * * *")
 
 
-    @commands.command(name="sseclose", aliases=["ssestop", "sseend"])
+    @commands.command(name="cseclose", aliases=["csestop", "cseend"])
     async def sse_end(self, ctx: commands.Context):
         """ Close the Chris Stock Exchange """
         if ctx.author.id != ctx.guild.owner_id:
@@ -150,7 +150,7 @@ class SSECog(Cog, name="Chris Stock Exchange"):
                        f"\t**Price**: ${round(transaction['price'], 2):,.2f}")
         
 
-    @commands.command(name="sseportfolio", aliases=["myportfolio", "seeportfolio", "portfolio"])
+    @commands.command(name="cseportfolio", aliases=["myportfolio", "seeportfolio", "portfolio"])
     async def sse_portfolio(self, ctx: commands.Context, member: discord.Member | None = None):
         """ View details about your SSE portfolio """
         if member is None:
@@ -170,7 +170,7 @@ class SSECog(Cog, name="Chris Stock Exchange"):
                        f"\tOverall Net: ${round(total - 1, 2):,.2f}```")
 
 
-    @commands.command(name="sseleaderboard")
+    @commands.command(name="cseleaderboard")
     async def sse_leaderboard(self, ctx: commands.Context):
         """ View the SSE leaderboard """
         transactions = db.get_transactions(guild=ctx.guild)
@@ -193,7 +193,7 @@ class SSECog(Cog, name="Chris Stock Exchange"):
             }
             portfolios.append((last_transaction, portfolio))
 
-        message = "```Chris STOCK EXCHANGE LEADERBOARD\n\n"
+        message = "```CHRIS STOCK EXCHANGE LEADERBOARD\n\n"
         portfolios = sorted(portfolios, key=lambda p: (-p[1]["total"], p[1]["name"]))
         for item in portfolios:
             last_transaction = item[0]
