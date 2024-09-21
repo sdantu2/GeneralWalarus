@@ -25,6 +25,10 @@ class SSESession:
         old_price = db.get_current_sse_price(self.guild)
         rate = random.randint(-200, 700) / 10000
         delta = old_price * rate
+        
+        if abs(delta) < 0.01:
+            return old_price
+        
         new_price = old_price + delta
         if write:
             db.set_current_sse_price(self.guild, new_price)
