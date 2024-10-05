@@ -4,8 +4,8 @@ from datetime import datetime
 from typing import cast, Literal
 from bson.timestamp import Timestamp
 
-def get_current_sse_price(discord_server: discord.Guild) -> float:
-    price_log = db.sse_price_log
+def get_current_wse_price(discord_server: discord.Guild) -> float:
+    price_log = db.wse_price_log
     query = price_log.find_one({ "_id.server_id": discord_server.id }, { "_id": 0, "price": 1 }, 
                                     sort=[("_id.timestamp", -1)])
     query_dict = cast(dict, query) 
@@ -13,8 +13,8 @@ def get_current_sse_price(discord_server: discord.Guild) -> float:
     return price
 
 
-def set_current_sse_price(discord_server: discord.Guild, new_price: float) -> bool:
-    price_log = db.sse_price_log
+def set_current_wse_price(discord_server: discord.Guild, new_price: float) -> bool:
+    price_log = db.wse_price_log
     timestamp = datetime.now()
     return price_log.insert_one({
                                     "_id": {
@@ -29,7 +29,7 @@ def get_prices(discord_server: discord.Guild):
     timestamps = []
     prices = []
 
-    price_log = db.sse_price_log
+    price_log = db.wse_price_log
     results = price_log.find({ "_id.server_id": discord_server.id }, { "_id.timestamp": 1, "price": 1 }, sort=[("_id.timestamp", 1)])
 
     for result in results:
@@ -40,7 +40,7 @@ def get_prices(discord_server: discord.Guild):
 
 
 def set_transaction(member: discord.Member, curr_price: float, transaction_type: Literal["buy", "sell"]) -> bool:
-    transaction_log = db.sse_transaction_log
+    transaction_log = db.wse_transaction_log
     timestamp = datetime.now()
     guild = member.guild
     last_transaction = get_last_transaction(member)
@@ -69,7 +69,7 @@ def set_transaction(member: discord.Member, curr_price: float, transaction_type:
 
 
 def get_last_transaction(member: discord.Member):
-    transaction_log = db.sse_transaction_log
+    transaction_log = db.wse_transaction_log
     guild = member.guild
     query = transaction_log.find_one({ "server_id": guild.id, "user_id": member.id }, sort=[("timestamp", -1)])
     query_dict = { "action": None } if query is None else cast(dict, query)
@@ -77,7 +77,7 @@ def get_last_transaction(member: discord.Member):
 
 
 def get_transactions(member: discord.Member | None = None, guild: discord.Guild | None = None):
-    transaction_log = db.sse_transaction_log
+    transaction_log = db.wse_transaction_log
     result = None
 
     if member is None and guild is None:

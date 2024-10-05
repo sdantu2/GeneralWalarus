@@ -5,7 +5,7 @@ from discord.ext import commands
 import discord.utils
 from cogs import (ArchiveCog, ElectionCog, EventsCog, 
     MiscellaneousCog, StatisticsCog, VoiceCog, OpenAICog,
-    SSECog)
+    WSECog)
 from globals import start_mutex
 import shell as sh
 from threading import Thread
@@ -28,7 +28,7 @@ def main():
     bot.add_cog(StatisticsCog())
     bot.add_cog(VoiceCog())
     bot.add_cog(OpenAICog())
-    bot.add_cog(SSECog())
+    bot.add_cog(WSECog())
     Thread(target=run_bot, name="cmd", args=[bot]).start()
     start_mutex.acquire()
     sh.run_walarus_shell()
