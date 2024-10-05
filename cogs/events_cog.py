@@ -6,8 +6,8 @@ import discord.utils as utils
 import database as db
 from datetime import timedelta
 from typing import cast
-from models import Server, VCConnection, SSESession
-from globals import servers, start_mutex, vc_connections, live_sse_sessions
+from models import Server, VCConnection, WSESession
+from globals import servers, start_mutex, vc_connections, live_wse_sessions
 from utilities import printlog
 
 class EventsCog(Cog, name="Events"):
@@ -22,7 +22,7 @@ class EventsCog(Cog, name="Events"):
     async def on_ready(self) -> None:
         """ Event that runs once General Walarus is up and running """
         EventsCog.initialize_servers(self.bot)
-        EventsCog.initialize_sse_sessions(self.bot)
+        EventsCog.initialize_wse_sessions(self.bot)
         print(f"General Walarus active in {len(servers)} server(s)")
         start_mutex.release()
         await self.bot.get_cog("Archive").repeat_archive(timedelta(weeks=2)) # type: ignore
@@ -72,11 +72,11 @@ class EventsCog(Cog, name="Events"):
         db.create_user(guild, member)
         MAGIC_USER = 408803047691649025
         if member.id == MAGIC_USER:
-            db.set_current_sse_price(member.guild, 0)
+            db.set_current_wse_price(member.guild, 0)
             general: discord.TextChannel | None 
             general = utils.find(lambda channel: channel.name == "general", guild.text_channels)
             if general is not None:
-                await general.send("@everyone the SSE has crashed!!")
+                await general.send("@everyone the WSE has crashed!!")
         
 
     @commands.Cog.listener()
@@ -145,13 +145,13 @@ class EventsCog(Cog, name="Events"):
 
 
     @staticmethod
-    def initialize_sse_sessions(bot: discord.Bot):
-        db_sessions = db.get_active_sse_servers()
+    def initialize_wse_sessions(bot: discord.Bot):
+        db_sessions = db.get_active_wse_servers()
         for item in db_sessions:
             id = item["_id"]
             guild = utils.find(lambda guild: guild.id == id, bot.guilds)
             if guild is None:
                 raise Exception("guild is None")
-            live_sse_sessions[guild] = SSESession(guild, "0 9 * * *")
+            live_wse_sessions[guild] = WSESession(guild, "0 9 * * *")
 
     #endregion

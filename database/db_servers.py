@@ -71,20 +71,20 @@ def get_chat_to_archive(guild: discord.Guild) -> str:
     query_dict: dict = cast(dict, query)
     return str(query_dict["chat_to_archive"])
 
-def get_sse_status(guild: discord.Guild) -> bool:
+def get_wse_status(guild: discord.Guild) -> bool:
     connected_servers = db.connected_servers
     query = connected_servers.find_one({ "_id": guild.id },
-                                       { "sse": 1 } )
+                                       { "wse": 1 } )
     query_dict = cast(dict, query)
-    status = bool(query_dict["sse"])
+    status = bool(query_dict["wse"])
     return status
 
-def set_sse_status(guild: discord.Guild, status: bool):
+def set_wse_status(guild: discord.Guild, status: bool):
     connected_servers = db.connected_servers
     query = connected_servers.update_one({ "_id": guild.id },
-                                         { "$set": { "sse": status } })
+                                         { "$set": { "wse": status } })
 
-def get_active_sse_servers():
+def get_active_wse_servers():
     connected_servers = db.connected_servers
-    query = connected_servers.find({ "sse": True })
+    query = connected_servers.find({ "wse": True })
     return [server for server in query]

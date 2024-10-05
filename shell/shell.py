@@ -1,4 +1,4 @@
-from globals import servers, vc_connections, elections, live_sse_sessions
+from globals import servers, vc_connections, elections, live_wse_sessions
 import os
     
 class _Command:
@@ -18,8 +18,8 @@ def show_globals() -> None:
     print(f"elections:")
     for guild in elections.keys():
         print(f"\tActive election in '{guild.name}'")
-    print(f"live_sse_sessions:")
-    for guild in live_sse_sessions.values():
+    print(f"live_wse_sessions:")
+    for guild in live_wse_sessions.values():
         print(f"\t{str(guild)}")
 
 def exit_walarus() -> None:
