@@ -135,7 +135,6 @@ class MiscellaneousCog(Cog, name="Miscellaneous"):
         """ Command reserved for testing purposes """
         if ctx.guild is None:
             raise Exception("ctx.guild is None")
-        # if ctx.author.id != ctx.guild.owner_id:
         await ctx.send("Boi wat you tryna test 🫱")
 
 

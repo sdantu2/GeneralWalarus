@@ -5,6 +5,7 @@ from discord.ext import commands
 import discord.utils as utils
 import database as db
 from datetime import timedelta
+from llm import LLMEngine
 from typing import cast
 from models import Server, VCConnection, WSESession
 from globals import servers, start_mutex, vc_connections, live_wse_sessions
@@ -13,8 +14,9 @@ from utilities import printlog
 class EventsCog(Cog, name="Events"):
     """ Class containing implementations for Discord bot events """
     
-    def __init__(self, bot: discord.Bot):
+    def __init__(self, bot: discord.Bot, llm_engine: LLMEngine):
         self.bot = bot
+        self.llm_engine = llm_engine
 
     #region Events
 
@@ -33,6 +35,18 @@ class EventsCog(Cog, name="Events"):
         """ Event that runs whenever a user sends something in a text channel """
         if message.guild is None:
             return
+        
+        # Walarus responds if mentioned
+        if self.bot.user in message.mentions:
+            channel = message.channel
+            response: str | None
+            async with channel.typing():
+                user_mention = f"@{self.bot.user.id}"
+                msg_to_bot = message.content.replace(user_mention, "").replace("<>", "").strip()
+                response = self.llm_engine.get_llm_response(f"do not indicate that you are an AI model or LLM, but respond to this: {msg_to_bot}")
+            await channel.send(response)
+
+        # updating user stats in DB
         db.inc_user_stat(message.guild, cast(discord.User, message.author), "sent_messages")
         for user in message.mentions:
             if user.id != message.author.id:
