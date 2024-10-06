@@ -7,6 +7,7 @@ from cogs import (ArchiveCog, ElectionCog, EventsCog,
     MiscellaneousCog, StatisticsCog, VoiceCog, OpenAICog,
     WSECog)
 from globals import start_mutex
+from llm import LLMEngine
 import shell as sh
 from threading import Thread
 from utilities import get_server_prefix
@@ -20,8 +21,11 @@ def main():
     intents.message_content = True
     intents.members = True
     intents.voice_states = True
+
     bot: commands.Bot = commands.Bot(command_prefix=get_server_prefix(), intents=intents) # type: ignore
-    bot.add_cog(EventsCog(bot))
+    llm_engine: LLMEngine = LLMEngine()
+
+    bot.add_cog(EventsCog(bot, llm_engine))
     bot.add_cog(ArchiveCog(bot))
     bot.add_cog(ElectionCog())
     bot.add_cog(MiscellaneousCog())
@@ -29,6 +33,7 @@ def main():
     bot.add_cog(VoiceCog())
     bot.add_cog(OpenAICog())
     bot.add_cog(WSECog())
+    
     Thread(target=run_bot, name="cmd", args=[bot]).start()
     start_mutex.acquire()
     sh.run_walarus_shell()
