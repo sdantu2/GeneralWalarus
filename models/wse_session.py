@@ -8,9 +8,11 @@ import random
 class WSESession:
     """ Class that encapsulates a details about a Walarus Stock Exchange session """
     
-    def __init__(self, guild: Guild, cron_exp: str) -> None:
+    def __init__(self, guild: Guild, user_id: int, cron_exp: str) -> None:
         self.guild: Guild = guild 
         """ Server that the session is running in """
+        self.user_id = user_id
+        """ User ID of the user we're tracking """
         cron_trigger = CronTrigger.from_crontab(cron_exp)
         scheduler = BackgroundScheduler()
         self.job: Job = scheduler.add_job(self.__get_new_wse_price, cron_trigger, args=[True])
