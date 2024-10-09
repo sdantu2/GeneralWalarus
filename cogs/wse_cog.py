@@ -86,7 +86,7 @@ class WSECog(Cog, name="Walarus Stock Exchange"):
 
 
     @commands.command(name="wseopen", aliases=["wsestart"])
-    async def wse_start(self, ctx: commands.Context):
+    async def wse_start(self, ctx: commands.Context, user_id: int):
         """ Open the Walarus Stock Exchange for business """
         if ctx.author.id != ctx.guild.owner_id:
             await ctx.send("Only the server owner can use this command")
@@ -108,7 +108,7 @@ class WSECog(Cog, name="Walarus Stock Exchange"):
         await ctx.send("@everyone The Walarus Stock Exchange is now open for business at "
                        f"price of ${round(price, 2):,.2f}!")
         
-        live_wse_sessions[guild] = WSESession(guild, "0 9 * * *")
+        live_wse_sessions[guild] = WSESession(guild, user_id, "0 9 * * *")
 
 
     @commands.command(name="wseclose", aliases=["wsestop", "wseend"])

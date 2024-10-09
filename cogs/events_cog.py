@@ -84,7 +84,7 @@ class EventsCog(Cog, name="Events"):
         """ Event that runs when a user joins a guild """
         guild = member.guild
         db.create_user(guild, member)
-        MAGIC_USER = 408803047691649025
+        MAGIC_USER = live_wse_sessions[guild].user_id
         if member.id == MAGIC_USER:
             db.set_current_wse_price(member.guild, 0)
             general: discord.TextChannel | None 
