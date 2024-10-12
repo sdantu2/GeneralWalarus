@@ -102,7 +102,7 @@ class WSECog(Cog, name="Walarus Stock Exchange"):
             return
 
         OPENING_PRICE = 1.00
-        db.set_wse_status(guild, status=True)
+        db.set_wse_status(guild, status=True, user_id=user_id)
         db.set_current_wse_price(guild, OPENING_PRICE)
         price = db.get_current_wse_price(guild)
         await ctx.send("@everyone The Walarus Stock Exchange is now open for business at "

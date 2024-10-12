@@ -21,7 +21,7 @@ class WSESession:
 
     def __str__(self) -> str:
         curr_price = db.get_current_wse_price(self.guild)
-        return (f"'{self.guild.name}': ${curr_price} (next price change: {self.job.next_run_time})")
+        return (f"'{self.guild.name}' ({self.user_id}): ${curr_price} (next price change: {self.job.next_run_time})")
     
     def __get_new_wse_price(self, write: bool = False) -> float:
         old_price = db.get_current_wse_price(self.guild)

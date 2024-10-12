@@ -79,10 +79,17 @@ def get_wse_status(guild: discord.Guild) -> bool:
     status = bool(query_dict["wse"])
     return status
 
-def set_wse_status(guild: discord.Guild, status: bool):
+def set_wse_status(guild: discord.Guild, status: bool, user_id: int | None = None):
+    if status and user_id is None:
+        raise Exception("Must provide the ID of the user to crash the WSE if enabling the WSE.")
+
     connected_servers = db.connected_servers
     query = connected_servers.update_one({ "_id": guild.id },
-                                         { "$set": { "wse": status } })
+                                         { "$set": { 
+                                                "wse": status, 
+                                                "wse_user_id": -1 if user_id is None else user_id
+                                            } 
+                                         })
 
 def get_active_wse_servers():
     connected_servers = db.connected_servers
