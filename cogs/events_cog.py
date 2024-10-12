@@ -163,9 +163,10 @@ class EventsCog(Cog, name="Events"):
         db_sessions = db.get_active_wse_servers()
         for item in db_sessions:
             id = item["_id"]
+            user_id_to_track = item["wse_user_id"]
             guild = utils.find(lambda guild: guild.id == id, bot.guilds)
             if guild is None:
                 raise Exception("guild is None")
-            live_wse_sessions[guild] = WSESession(guild, "0 9 * * *")
+            live_wse_sessions[guild] = WSESession(guild, user_id_to_track, "0 9 * * *")
 
     #endregion
