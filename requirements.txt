@@ -1,4 +1,5 @@
 apscheduler
+google-cloud-vision
 matplotlib
 matplotlib-inline
 openai
