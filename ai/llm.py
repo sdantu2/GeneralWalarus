@@ -5,12 +5,14 @@ import os
 class LLMEngine():
     
     def __init__(self):
-        self.__CLIENT = OpenAI()
-        self.__MODEL = os.getenv('OPENAI_MODEL')
-
-        if self.__MODEL is None:
+        model = os.getenv("OPENAI_MODEL")
+        
+        if model is None:
             raise Exception("Trouble getting client or model selection")
 
+        self.__CLIENT = OpenAI()
+        self.__MODEL = model 
+        
     def get_llm_response(self, input: str):
         completion = self.__CLIENT.chat.completions.create(
             model=self.__MODEL,

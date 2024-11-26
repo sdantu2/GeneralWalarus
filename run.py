@@ -7,7 +7,7 @@ from cogs import (ArchiveCog, ElectionCog, EventsCog,
     MiscellaneousCog, StatisticsCog, VoiceCog, OpenAICog,
     WSECog)
 from globals import start_mutex
-from llm import LLMEngine
+from ai import LLMEngine, VisionEngine
 import shell as sh
 from threading import Thread
 from utilities import get_server_prefix
@@ -24,8 +24,9 @@ def main():
 
     bot: commands.Bot = commands.Bot(command_prefix=get_server_prefix(), intents=intents) # type: ignore
     llm_engine: LLMEngine = LLMEngine()
+    vision_engine: VisionEngine = VisionEngine()
 
-    bot.add_cog(EventsCog(bot, llm_engine))
+    bot.add_cog(EventsCog(bot, llm_engine, vision_engine))
     bot.add_cog(ArchiveCog(bot))
     bot.add_cog(ElectionCog())
     bot.add_cog(MiscellaneousCog())

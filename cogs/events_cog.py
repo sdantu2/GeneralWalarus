@@ -5,7 +5,7 @@ from discord.ext import commands
 import discord.utils as utils
 import database as db
 from datetime import timedelta
-from llm import LLMEngine
+from ai import LLMEngine, VisionEngine
 from typing import cast
 from models import Server, VCConnection, WSESession
 from globals import servers, start_mutex, vc_connections, live_wse_sessions
@@ -14,9 +14,10 @@ from utilities import printlog
 class EventsCog(Cog, name="Events"):
     """ Class containing implementations for Discord bot events """
     
-    def __init__(self, bot: discord.Bot, llm_engine: LLMEngine):
+    def __init__(self, bot: discord.Bot, llm_engine: LLMEngine, vision_engine: VisionEngine):
         self.bot = bot
         self.llm_engine = llm_engine
+        self.vision_engine = vision_engine
 
     #region Events
 
@@ -35,6 +36,10 @@ class EventsCog(Cog, name="Events"):
         """ Event that runs whenever a user sends something in a text channel """
         if message.guild is None:
             return
+        if self.bot.user is None:
+            raise Exception("bot.user is None")
+        
+        bot_sent = message.author.id == self.bot.user.id
         
         # Walarus responds if mentioned
         if self.bot.user in message.mentions:
@@ -49,8 +54,14 @@ class EventsCog(Cog, name="Events"):
         # updating user stats in DB
         db.inc_user_stat(message.guild, cast(discord.User, message.author), "sent_messages")
         for user in message.mentions:
-            if user.id != message.author.id:
+            user_mentioned_self = user.id == message.author.id
+            bot_mentioned_user = bot_sent
+            if not user_mentioned_self and not bot_mentioned_user:
                 db.inc_user_stat(message.guild, cast(discord.User, user), "mentioned")
+
+        # if NSFW image sent, delete and resend with blur
+        if not bot_sent:
+            await self.vision_engine.check_if_nsfw(message)
  
 
     @commands.Cog.listener()
