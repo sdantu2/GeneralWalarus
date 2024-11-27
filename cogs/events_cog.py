@@ -9,7 +9,7 @@ from ai import LLMEngine, VisionEngine
 from typing import cast
 from models import Server, VCConnection, WSESession
 from globals import servers, start_mutex, vc_connections, live_wse_sessions
-from utilities import printlog
+from utilities import printlog, send_message
 
 class EventsCog(Cog, name="Events"):
     """ Class containing implementations for Discord bot events """
@@ -49,7 +49,7 @@ class EventsCog(Cog, name="Events"):
                 user_mention = f"@{self.bot.user.id}"
                 msg_to_bot = message.content.replace(user_mention, "").replace("<>", "").strip()
                 response = self.llm_engine.get_llm_response(f"do not indicate that you are an AI model or LLM, but respond to this: {msg_to_bot}")
-            await channel.send(response)
+            await send_message(message.channel, response)
 
         # updating user stats in DB
         db.inc_user_stat(message.guild, cast(discord.User, message.author), "sent_messages")

@@ -1,4 +1,7 @@
 from datetime import datetime
+import discord
+from discord.abc import Messageable
+from io import BytesIO
 from models.server import Server
 import os
 from pytz import timezone
@@ -30,3 +33,23 @@ def get_server_prefix() -> str:
     (this is just a placeholder for now) """
     result = os.getenv("CMD_PREFIX")
     return str(result)
+
+async def send_message(channel: Messageable, msg: str | None):
+    if msg is None:
+        return
+
+    # if under Discord message limit, just send as is
+    DISCORD_MSG_LIMIT = 2000
+    if len(msg) < DISCORD_MSG_LIMIT:
+        await channel.send(msg)
+        return
+    
+    # otherwise put message in a file and send file
+    OUTPUT_FILE = "message.md"
+    with open(OUTPUT_FILE, "x") as f:
+        f.write(msg)
+    with open(OUTPUT_FILE, "rb") as f:
+        msg_file = discord.File(fp=f, filename=OUTPUT_FILE)
+        await channel.send(file=msg_file)
+
+    os.remove(OUTPUT_FILE)
